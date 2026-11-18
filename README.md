@@ -1,4 +1,4 @@
-# Mohalla Studio — Cinematic v5
+# Mohalla Studio — Cinematic v6
 
 An independent Three.js **Indian mohalla video studio** (not the `insta-shorts` project). Reusable 3D environment with procedural 2.5D Toon Stickman and original Raju sprite, timeline preview and browser WebM export.
 
@@ -51,3 +51,10 @@ npm test
 - Visual browser testing still recommended: a Node syntax/test pass does not verify the GPU output.
 
 The separate `boidbit/insta-shorts` repository was not modified.
+
+
+### v6 polish
+- Removed the drone-like opening and moved the cinematic camera to **street-level framing**.
+- Added a smarter multi-try camera avoidance pass to reduce walls/roofs covering the hero.
+- Added extra procedural mohalla characters: **chaiwala, aunty, uncle, schoolboy, vendor and teen NPCs**.
+- Extended the ported Toon Stickman system with accessories like cap, apron, dupatta, moustache, bindi, glasses and school bag.

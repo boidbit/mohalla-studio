@@ -23,8 +23,18 @@ export function createToonStickman(THREE, options = {}) {
   root.position.y = 1.90;
   root.add(mesh);
   const INK='#101010', SKIN='#eee7d0', WHITE='#fcfcfa', MOUTH='#701e28';
-  const palette={pink:'#de768c',blue:'#5c8ece',green:'#60a85c',yellow:'#eec440',orange:'#e88c3c',purple:'#9668be',red:'#d04640',teal:'#40a8a0'};
-  const shirt = palette[options.color]||palette.blue;
+  const palette={pink:'#de768c',blue:'#5c8ece',green:'#60a85c',yellow:'#eec440',orange:'#e88c3c',purple:'#9668be',red:'#d04640',teal:'#40a8a0',cream:'#e9d9ad'};
+  const presets={
+    raju:{color:'blue',hair:'tuft'},
+    chaiwala:{color:'orange',moustache:true,cap:true,apron:true,hair:'none'},
+    aunty:{color:'pink',bindi:true,bun:true,dupatta:true,hair:'bun'},
+    uncle:{color:'purple',moustache:true,glasses:true,hair:'side'},
+    schoolboy:{color:'green',hair:'short',bag:true},
+    teen:{color:'teal',hair:'short'},
+    vendor:{color:'yellow',moustache:true,cap:true,hair:'none'}
+  };
+  const config={...(presets[options.variant]||presets.raju),...options};
+  const shirt = palette[config.color]||palette.blue;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const smooth=(v)=>{v=clamp(v,0,1);return v*v*(3-2*v)};
   const fract=(v)=>v-Math.floor(v);
@@ -59,6 +69,9 @@ export function createToonStickman(THREE, options = {}) {
       if(i===0)g.moveTo(x,y);else g.lineTo(x,y);
     }
     g.closePath();g.fillStyle=shirt;g.fill();g.strokeStyle=INK;g.lineWidth=8;g.stroke();
+    if(config.dupatta){stroke([[-54,-188],[-16,-116]],8,'#fff0d8');stroke([[54,-188],[16,-116]],8,'#fff0d8');}
+    if(config.apron){g.fillStyle='#f1e9dd';g.fillRect(-42,-138,84,124);g.strokeStyle=INK;g.lineWidth=5;g.strokeRect(-42,-138,84,124);stroke([[0,-197],[0,-138]],5);}
+    if(config.bag){stroke([[-61,-186],[-8,-46]],9,'#483f38');stroke([[61,-186],[8,-46]],9,'#483f38');}
   }
   function arm(side,ang1,ang2){
     const shoulder=[side*52,-275], elbow=joint(shoulder,ang1,125), hand=joint(elbow,ang2,125);
@@ -66,7 +79,12 @@ export function createToonStickman(THREE, options = {}) {
   }
   function head(expression,tilt,blink,mouthOpen,lookX){
     g.save();g.translate(0,-414);g.rotate(d2r(tilt));
+    if(config.bun)ellipse(0,-104,24,19,INK,null);
     ellipse(0,0,100,100,SKIN,INK,9);
+    if(config.cap){g.fillStyle='#5f4a39';g.beginPath();g.arc(0,-5,86,Math.PI,0);g.lineTo(86,-2);g.quadraticCurveTo(28,-38,-24,-22);g.closePath();g.fill();g.strokeStyle=INK;g.lineWidth=8;g.stroke();}
+    else if(config.hair==='short'){g.fillStyle=INK;g.beginPath();g.arc(0,-10,88,Math.PI*1.06,Math.PI*1.94);g.lineTo(70,-18);g.quadraticCurveTo(0,-55,-70,-18);g.closePath();g.fill();}
+    else if(config.hair==='side'){g.fillStyle=INK;g.beginPath();g.arc(0,-10,88,Math.PI*1.02,Math.PI*1.98);g.fill();ellipse(0,-68,28,10,SKIN,null);}
+
     let eye='dot',mouth='smile';
     if(expression==='talk'){eye='dot';mouth=mouthOpen>.23?'talk':'smile';}
     if(expression==='laugh'){eye='happy';mouth='laugh';}
@@ -88,6 +106,9 @@ export function createToonStickman(THREE, options = {}) {
         stroke([[x-21,-6],[x+21,-6]],6);
       }
     }
+    if(config.glasses){stroke([[-56,-5],[-17,-5]],5);stroke([[17,-5],[56,-5]],5);g.beginPath();g.ellipse(-34,-4,23,19,0,0,TAU);g.ellipse(34,-4,23,19,0,0,TAU);g.strokeStyle=INK;g.lineWidth=4;g.stroke();}
+    if(config.bindi)ellipse(0,-21,7,7,'#be3d3d',null);
+    if(config.moustache){stroke([[-6,26],[-28,37]],6);stroke([[6,26],[28,37]],6);}
     if(mouth==='smile'){
       g.beginPath();g.ellipse(0,18,34,28,0,d2r(28),d2r(152));g.strokeStyle=INK;g.lineWidth=7;g.lineCap='round';g.stroke();
     } else if(mouth==='flat')stroke([[-24,54],[24,54]],7);
@@ -101,10 +122,11 @@ export function createToonStickman(THREE, options = {}) {
       ellipse(0,58,rx,ry,MOUTH,INK,6);
       ellipse(0,59+ry*.4,rx*.55,Math.max(3,ry*.28),'#e26e78',null);
     }
-    // Original studio supports a tuft accessory. Preserve that distinct silhouette.
-    for(const [x,tip] of [[-13,-27],[0,0],[13,27]]){
-      g.beginPath();g.moveTo(x,-96);g.quadraticCurveTo(x*.6,-116,tip,-137);
-      g.lineWidth=6;g.strokeStyle=INK;g.stroke();
+    if(config.hair==='tuft' || !config.hair){
+      for(const [x,tip] of [[-13,-27],[0,0],[13,27]]){
+        g.beginPath();g.moveTo(x,-96);g.quadraticCurveTo(x*.6,-116,tip,-137);
+        g.lineWidth=6;g.strokeStyle=INK;g.stroke();
+      }
     }
     g.restore();
   }

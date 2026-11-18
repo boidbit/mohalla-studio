@@ -112,7 +112,7 @@ Raju haath hilata hai.
 Camera wide shot.
 Raju chowk ki taraf daudta hai.
 Raju ruk kar idhar-udhar dekhta hai.</textarea>
-      <p class="hint">Ek action per line best hai. Supports: walk, run, chai shop, kirana, sabzi, wave, jump, look, dialogue, close-up/wide camera, day/night. Unsupported actions appear as captions.</p>
+      <p class="hint">Ek action per line best hai. Supports: walk, run, chai shop, kirana, sabzi, wave, jump, look, dialogue, close-up/wide camera, day/night, street-level camera and multiple mohalla characters. Unsupported actions appear as captions.</p>
       <div class="buttonrow"><button class="studiobtn primary" id="buildBtn">✦ Generate Scenes</button><button class="studiobtn" id="exampleBtn">↺ Sample</button><button class="studiobtn" id="walkTestBtn">🚶 Walk Test</button><button class="studiobtn" id="turnTestBtn">🎥 Turn Test</button></div>
       <div class="sectionhead"><span>2. Video format</span><span id="ratioLabel">Reels • 9:16</span></div>
       <div class="smalltoggle"><button class="toggle active" id="portraitBtn">9:16 Portrait</button><button class="toggle" id="landscapeBtn">16:9 Landscape</button></div>
@@ -307,6 +307,23 @@ dog(-9.3,31);
 function villager(x,z,shirt,pants,rot=0){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;world.add(g);let skin=M('#be8b67');cube(g,0,1.25,0,.65,1.4,.44,M(shirt));for(let xx of [-.19,.19])cube(g,xx,.35,0,.23,.8,.25,M(pants));ball(g,0,2.3,0,.44,skin,12);let hair=ball(g,0,2.61,-.04,.39,M('#242322'),12);hair.scale.y=.35;
  for(let xx of [-1,1]){let arm=cube(g,xx*.47,1.4,0,.17,.95,.19,skin);arm.rotation.z=xx*.23;}animated.push({kind:'npc',g,seed:rand()*8});}
 for(let p of [[11,-20,'#a76748','#e7dec8',-1.57],[-11,20,'#63928a','#d9d3bc',1.57],[11,40,'#d18a5c','#ddd1b7',-1.57],[-11,76,'#a2a15b','#c7bdad',1.57],[59,-8,'#a36975','#d8d0bd',3.14]])villager(...p);
+
+// Extra procedural mohalla characters so the world feels alive beyond the main hero.
+function toonNpc(x,z,options={},action='idle',rot=0,scale=.84){
+ const holder=new THREE.Group();holder.position.set(x,0,z);holder.rotation.y=rot;world.add(holder);
+ const actor=createToonStickman(THREE,options);actor.root.scale.setScalar(scale);holder.add(actor.root);
+ animated.push({kind:'toonNpc',holder,actor,action,seed:rand()*12,scale});
+ return holder;
+}
+const sideLaneCast=[
+ [6.3,-18.4,{variant:'chaiwala'},'talk',0,.82],
+ [-5.7,74.4,{variant:'uncle'},'look',Math.PI,.82],
+ [5.9,41.2,{variant:'vendor'},'wave',-Math.PI/2,.80],
+ [-6.1,17.8,{variant:'aunty'},'talk',Math.PI/2,.82],
+ [57.0,-9.4,{variant:'schoolboy'},'wave',Math.PI,.78],
+ [-55.5,8.3,{variant:'teen'},'look',0,.80]
+];
+for(const npc of sideLaneCast)toonNpc(...npc);
 // Auto-rickshaw parked at the far junction, classic green/yellow
 function autorickshaw(x,z){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=.85;world.add(g);cube(g,0,1.2,0,2.0,1.25,2.8,M('#27744e'));cube(g,0,1.95,0,2.1,.58,2.7,M('#e5bd54'));cube(g,0,1.85,-1.31,1.85,.8,.06,M('#4d5c59'));cube(g,0,1.86,1.31,1.85,.8,.07,M('#4d5c59'));for(let xx of [-.79,.79])for(let zz of [-.8,.8]){let wheel=cyl(g,xx,.47,zz,.46,.21,black);wheel.rotation.z=Math.PI/2}blockers.push({x,z,hw:2,hd:2.5})}
 autorickshaw(58,-4);
@@ -318,7 +335,7 @@ const textureLoader=new THREE.TextureLoader();
 function puppetLayer(url){const t=textureLoader.load(url);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return new THREE.Mesh(new THREE.PlaneGeometry(1.97,3.68),new THREE.MeshBasicMaterial({map:t,transparent:true,alphaTest:.07,side:THREE.DoubleSide,depthWrite:false}))}
 const character=new THREE.Group();character.position.y=1.83;player.add(character);
 // This browser port follows boidbit/insta-shorts character proportions and actions.
-const toonActor=createToonStickman(THREE,{color:'blue'});
+const toonActor=createToonStickman(THREE,{variant:'raju',color:'blue'});
 player.add(toonActor.root);
 let actorStyle='toon';character.visible=false;
 
@@ -555,27 +572,29 @@ function timeState(t){
 // Cinematic director: fixed lenses, rule-based reframing and safe ray/obstacle avoidance.
 function cameraPose(st,t){
  const {active,pos}=st;
- let type=st.camMode!=='follow'?st.camMode:(cinematic?(active.kind==='talk'?'close':active.kind==='wave'?'close':active.kind==='run'?'tracking':active.kind==='walk'?'tracking':active.kind==='jump'?'medium':active.kind==='caption'?'wide':'medium'):'follow');
- if(cinematic&&t<1.5&&active.index===0)type='establish';
+ let type=st.camMode!=='follow'?st.camMode:(cinematic?(active.kind==='talk'?'close':active.kind==='wave'?'medium':active.kind==='run'?'tracking':active.kind==='walk'?'tracking':active.kind==='jump'?'medium':active.kind==='caption'?'wide':'medium'):'follow');
  const portrait=format==='portrait';
  const presets={
-  establish:{angle:.80,dist:26,h:12.2,fov:portrait?55:49,lookY:1.72},
-  wide:{angle:.52,dist:22.6,h:10.0,fov:portrait?52:49,lookY:1.75},
-  medium:{angle:.40,dist:12.2,h:6.1,fov:portrait?47:43,lookY:1.94},
-  tracking:{angle:.64,dist:12.4,h:5.5,fov:portrait?44:42,lookY:1.86},
-  close:{angle:.25,dist:7.4,h:4.0,fov:portrait?38:38,lookY:2.10},
-  follow:{angle:.48,dist:16.2,h:7.3,fov:portrait?52:48,lookY:1.86}
+  wide:{angle:.40,dist:17.8,h:4.9,fov:portrait?49:46,lookY:1.86},
+  medium:{angle:.34,dist:10.6,h:3.85,fov:portrait?43:40,lookY:1.96},
+  tracking:{angle:.55,dist:9.9,h:3.35,fov:portrait?41:39,lookY:1.88},
+  close:{angle:.19,dist:6.3,h:3.02,fov:portrait?36:35,lookY:2.08},
+  follow:{angle:.40,dist:13.2,h:4.55,fov:portrait?47:44,lookY:1.90}
  };
  const p=presets[type]||presets.medium;
- const drift=cinematic?Math.sin(t*.17)*.022:0;
- const a=(type==='tracking' && st.moving ? st.heading + (portrait?.62:.76) : p.angle)+drift;
- const lead=st.moving&&active.path?pointOn(active.path,clamp((st.distance+2.4)/(active.motion.distance||1),0,1)):pos;
- const headingLead=st.moving?.16:0;
- const composition=(cinematic&&['close','medium'].includes(type))?.34:0;
+ const drift=cinematic?Math.sin(t*.15)*.018:0;
+ const a=(type==='tracking' && st.moving ? st.heading + (portrait?.52:.62) : st.heading + p.angle)+drift;
+ const lead=st.moving&&active.path?pointOn(active.path,clamp((st.distance+2.2)/(active.motion.distance||1),0,1)):pos;
+ const headingLead=st.moving?.18:0;
+ const composition=(cinematic&&['close','medium'].includes(type))?.26:0;
  const look=new THREE.Vector3(pos.x+(lead.x-pos.x)*headingLead+Math.cos(a)*composition,p.lookY,pos.z+(lead.z-pos.z)*headingLead-Math.sin(a)*composition);
- const shift=cinematic?Math.sin(t*.22)*.14:0;
- const cam=new THREE.Vector3(pos.x+Math.sin(a)*p.dist+shift,p.h,pos.z+Math.cos(a)*p.dist);
- return {cam,look,fov:p.fov,angle:a,type};
+ const shoulderShift=(type==='close' || type==='medium')?(portrait?.55:.42):0;
+ const cam=new THREE.Vector3(
+   pos.x+Math.sin(a)*p.dist+Math.cos(a)*shoulderShift,
+   p.h,
+   pos.z+Math.cos(a)*p.dist-Math.sin(a)*shoulderShift
+ );
+ return {cam,look,fov:p.fov,angle:a,type,dist:p.dist,height:p.h};
 }
 function getCinematicCamera(st,t){
  const target=cameraPose(st,t),active=st.active;
@@ -587,7 +606,34 @@ function getCinematicCamera(st,t){
  const f=easing(clamp((t-active.start)/blendTime,0,1));
  return {cam:old.cam.clone().lerp(target.cam,f),look:old.look.clone().lerp(target.look,f),fov:old.fov+(target.fov-old.fov)*f,angle:target.angle,type:target.type};
 }
-function cameraSafePosition(look,cam){return cameraClearance(look,cam,blockers);}
+function cameraSafePosition(look,cam,shot){
+ const offset=cam.clone().sub(look);const baseDist=Math.hypot(offset.x,offset.z)||8;const baseAngle=Math.atan2(offset.x,offset.z);const height=Math.max(2.7,cam.y);
+ const variants=[
+  {a:0,d:1,y:0,l:0,bias:.36},
+  {a:.30,d:1,y:-.10,l:.20,bias:.12},
+  {a:-.30,d:1,y:-.10,l:-.20,bias:.12},
+  {a:.55,d:.95,y:-.18,l:.35,bias:.10},
+  {a:-.55,d:.95,y:-.18,l:-.35,bias:.10},
+  {a:0,d:.84,y:-.28,l:0,bias:.06},
+  {a:.18,d:.78,y:-.34,l:.30,bias:.03},
+  {a:-.18,d:.78,y:-.34,l:-.30,bias:.03}
+ ];
+ let best=cameraClearance(look,cam,blockers),bestScore=-1e9;
+ for(const v of variants){
+  const ang=baseAngle+v.a;
+  const desired=new THREE.Vector3(
+    look.x+Math.sin(ang)*(baseDist*v.d)+Math.cos(ang)*v.l,
+    Math.max(2.75,height+v.y),
+    look.z+Math.cos(ang)*(baseDist*v.d)-Math.sin(ang)*v.l
+  );
+  const safe=cameraClearance(look,desired,blockers);
+  const desiredLen=Math.max(.001,desired.distanceTo(look));
+  const kept=safe.distanceTo(look)/desiredLen;
+  const score=kept*14 - Math.abs(v.a)*1.6 - Math.max(0,safe.y-5.8)*.22 + v.bias + (shot.type==='tracking'?kept*.25:0);
+  if(score>bestScore){bestScore=score;best=safe;}
+ }
+ return best;
+}
 
 function darkness(t){let previous=0,next=0,start=-100;
  for(const sh of shots){if(sh.kind==='time'&&sh.start<=t){previous=next;next=sh.night?1:0;start=sh.start;}else if(sh.start>t)break}
@@ -630,7 +676,17 @@ function animateEnvironment(t,nightMix){
   p.rotation.y=phase+.5;
   p.scale.y=1+Math.sin(t*10+i*2)*.15;
  }
- for(const a of animated)if(a.kind==='npc')a.g.rotation.z=Math.sin(t*1.35+a.seed)*.014;
+ for(const a of animated){
+  if(a.kind==='npc')a.g.rotation.z=Math.sin(t*1.35+a.seed)*.014;
+  if(a.kind==='toonNpc'){
+    const moodTime=t*.72+a.seed;
+    const act=a.action==='idle'?(Math.sin(moodTime)>.72?'wave':'idle'):a.action;
+    const velocity=act==='walk'?.32:0;
+    a.actor.update({time:moodTime,phase:moodTime*(act==='walk'?5.4:3.2),velocity,action:act,local:(Math.sin(moodTime)+1)/2,hop:act==='jump'?.08:0,turn:Math.sin(moodTime*.7)*.12});
+    a.holder.rotation.y=Math.atan2(camera.position.x-a.holder.position.x,camera.position.z-a.holder.position.z);
+    a.holder.position.y=Math.sin(moodTime*1.6)*.01;
+  }
+ }
  for(const l of nightLights)l.intensity=nightMix*1.0;
 }
 
@@ -749,7 +805,7 @@ function renderAt(t){
  character.rotation.y=shot.angle+turn*.12;
   toonActor.root.rotation.y=shot.angle+turn*.12;
   // Camera clearance is computed from scene positions (deterministic when seeking).
-  const safeCamera=cameraSafePosition(shot.look,shot.cam);
+  const safeCamera=cameraSafePosition(shot.look,shot.cam,shot);
   camera.position.copy(safeCamera);
  camera.fov=shot.fov;camera.updateProjectionMatrix();camera.lookAt(shot.look);
  renderer.render(scene,camera);
