@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Mohalla Studio — Cinematic Motion v3</title>
+<title>Mohalla Studio — Cinematic Motion v4</title>
 <style>
   *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#edcead;font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;user-select:none;-webkit-user-select:none}
   #game{width:100%;height:100%;display:block;touch-action:none}
@@ -101,7 +101,7 @@
 
 <div id="studio">
   <aside id="editor">
-    <header class="studio-brand"><div class="kicker">✦ CARTOON FILM MAKER</div><h1>MOHALLA <span style="color:#e9a966">STUDIO.</span><span class="introTag">CINEMA v3</span></h1><div class="muted">Apni script likho • scene banao • video nikalo</div></header>
+    <header class="studio-brand"><div class="kicker">✦ CARTOON FILM MAKER</div><h1>MOHALLA <span style="color:#e9a966">STUDIO.</span><span class="introTag">CINEMA v4</span></h1><div class="muted">Apni script likho • scene banao • video nikalo</div></header>
     <div class="settings">
       <label class="fld" for="scriptText">1. Script / Kahani</label>
       <textarea id="scriptText" spellcheck="false">Subah ka mohalla. Raju gali mein chalta hai.
@@ -118,19 +118,22 @@ Raju ruk kar idhar-udhar dekhta hai.</textarea>
       <div class="smalltoggle"><button class="toggle active" id="portraitBtn">9:16 Portrait</button><button class="toggle" id="landscapeBtn">16:9 Landscape</button></div>
       <div class="sectionhead"><span>3. Camera style</span><span id="cameraLabel">Auto Director</span></div>
       <div class="smalltoggle"><button class="toggle active" id="cinemaBtn">🎬 Cinematic</button><button class="toggle" id="steadyBtn">📷 Steady Follow</button></div>
-      <div class="sectionhead"><span>4. Voiceover (optional)</span></div>
+      <div class="sectionhead"><span>4. Character style</span><span id="actorLabel">Toon Stickman</span></div>
+      <div class="smalltoggle"><button class="toggle active" id="toonActorBtn">● Toon Stickman</button><button class="toggle" id="classicActorBtn">✦ Original Raju</button></div>
+      <p class="hint">Toon character ko <b>insta-shorts</b> ke procedural drawing aur walk-pose logic se Three.js ke liye port kiya hai. Original artwork bhi available hai.</p>
+      <div class="sectionhead"><span>5. Voiceover (optional)</span></div>
       <input id="voiceInput" type="file" accept="audio/*"/><div class="hint">Upload apni voice/audio file. Captions script se aayenge. Automatic AI voice aur lip-sync abhi included nahi hain.</div>
       <div class="storyboard"><div class="sectionhead"><span>Storyboard</span><span id="sceneCount">0 scenes</span></div><div id="shots"></div></div>
     </div>
   </aside>
   <main id="workarea">
-    <div class="worktop"><div><strong>Live scene preview <span class="introTag">THREE.JS</span></strong><div class="muted">Foot-aware walking • articulated arms • smart cinematic camera</div></div><span id="status">Ready</span></div>
+    <div class="worktop"><div><strong>Live scene preview <span class="introTag">THREE.JS</span></strong><div class="muted">Instashorts-style procedural stickman • planted feet • cinematic camera</div></div><span id="status">Ready</span></div>
     <div class="stageouter"><div id="stage"><canvas id="game"></canvas><canvas id="videoCanvas"></canvas></div></div>
     <div class="transport">
       <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Video timeline"/>
       <div class="transportrow"><span class="time" id="timeDisplay">00:00 / 00:00</span><div class="buttonrow"><button class="studiobtn" id="restartBtn">⏮ Start</button><button class="studiobtn primary" id="playBtn">▶ Preview</button><button class="studiobtn success" id="exportBtn">⬇ Record WebM</button></div></div>
       <div id="recordHint">🔴 Recording in real time. Keep this tab open until the video finishes.</div>
-      <div class="exportnote">Articulated 2.5D paper puppet: head, arms, legs and footfall correction; not yet a full 3D skeletal character. Camera can be switched. Video export browser ke MediaRecorder se hota hai. Best Chrome/Edge; audio optional. WebM ko baad mein MP4 mein convert kar sakte ho.</div>
+      <div class="exportnote">Choose procedural Toon Stickman or original Raju puppet. Both are 2.5D (not full skeletal 3D). The Toon character uses planted-step IK and in-canvas facial expressions. Camera can be switched. Video export browser ke MediaRecorder se hota hai. Best Chrome/Edge; audio optional. WebM ko baad mein MP4 mein convert kar sakte ho.</div>
     </div>
   </main>
 </div>
@@ -147,6 +150,7 @@ Raju ruk kar idhar-udhar dekhta hai.</textarea>
 <div class="footnote">Stylized Indian street • Three.js • v1.0</div>
 <script type="module">
 import * as THREE from 'three';
+import { createToonStickman } from './src/toon-stickman.js';
 
 // ─── A portable, edit-friendly procedural Three.js neighborhood ─────────────
 const canvas=document.getElementById('game');
@@ -312,13 +316,18 @@ const player=new THREE.Group();player.position.set(0,0,12);scene.add(player);
 const textureLoader=new THREE.TextureLoader();
 function puppetLayer(url){const t=textureLoader.load(url);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return new THREE.Mesh(new THREE.PlaneGeometry(1.97,3.68),new THREE.MeshBasicMaterial({map:t,transparent:true,alphaTest:.07,side:THREE.DoubleSide,depthWrite:false}))}
 const character=new THREE.Group();character.position.y=1.83;player.add(character);
+// This browser port follows boidbit/insta-shorts character proportions and actions.
+const toonActor=createToonStickman(THREE,{color:'blue'});
+player.add(toonActor.root);
+let actorStyle='toon';character.visible=false;
+
 const leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
 const PX=1.97/729, PY=3.68/1361;
 function placeLeg(pivot,mesh,px,py){const x=(px-729/2)*PX,y=(1361/2-py)*PY;pivot.position.set(x,y,0);mesh.position.set(-x,-y,0);pivot.add(mesh);character.add(pivot)}
 const leftMesh=puppetLayer('assets/leg_left.png');const rightMesh=puppetLayer('assets/leg_right.png');
 leftMesh.renderOrder=10;rightMesh.renderOrder=10;
 placeLeg(leftLeg,leftMesh,284,1052);placeLeg(rightLeg,rightMesh,433,1052);
-// CINEMA v3: artwork-preserving layered puppet: individually jointed head/arms/legs.
+// CINEMA v4: artwork-preserving layered puppet: individually jointed head/arms/legs.
 const torsoMesh=puppetLayer('assets/torso.png');torsoMesh.renderOrder=14;torsoMesh.position.z=.016;character.add(torsoMesh);
 const headAnchor=new THREE.Group();headAnchor.position.set(0,(1361/2-590)*PY,.055);character.add(headAnchor);
 const headMesh=puppetLayer('assets/head.png');headMesh.renderOrder=25;headMesh.position.set(0,-(1361/2-590)*PY,0);headAnchor.add(headMesh);
@@ -523,7 +532,7 @@ function compile(){
  }
  document.getElementById('playBtn').textContent='▶ Preview';
  const unsupported=shots.filter(s=>s.unsupported).length;
- statusEl.textContent=`${shots.length} scenes · ${fmt(totalDuration)} · Cinema v3${unsupported?' · '+unsupported+' caption-only':''}`;
+ statusEl.textContent=`${shots.length} scenes · ${fmt(totalDuration)} · Cinema v4${unsupported?' · '+unsupported+' caption-only':''}`;
  if(unsupported)statusEl.title='Unknown commands are shown as captions, not automatically animated';
  renderAt(0);return true;
 }
@@ -561,7 +570,8 @@ function cameraPose(st,t){
  const a=p.angle+drift;
  const lead=st.moving&&active.path?pointOn(active.path,clamp((st.distance+2.4)/(active.motion.distance||1),0,1)):pos;
  const headingLead=st.moving?.16:0;
- const look=new THREE.Vector3(pos.x+(lead.x-pos.x)*headingLead,p.lookY,pos.z+(lead.z-pos.z)*headingLead);
+ const composition=(cinematic&&['close','medium'].includes(type))?.34:0;
+ const look=new THREE.Vector3(pos.x+(lead.x-pos.x)*headingLead+Math.cos(a)*composition,p.lookY,pos.z+(lead.z-pos.z)*headingLead-Math.sin(a)*composition);
  const shift=cinematic?Math.sin(t*.22)*.14:0;
  const cam=new THREE.Vector3(pos.x+Math.sin(a)*p.dist+shift,p.h,pos.z+Math.cos(a)*p.dist);
  return {cam,look,fov:p.fov,angle:a,type};
@@ -736,6 +746,10 @@ function renderAt(t){
     dust.scale.setScalar(1+cycle*2.6);
     dust.material.opacity=moving?Math.sin(cycle*Math.PI)*amount:0;
   }
+  // Animation samples are pure functions of storyboard time: scrub and export match.
+  toonActor.update({time:currentTime,phase,velocity:normalizedSpeed,action:active.kind,local,hop});
+  toonActor.root.visible=actorStyle==='toon';
+  character.visible=actorStyle==='classic';
  const nightMix=darkness(currentTime);
  scene.background.copy(new THREE.Color('#e8c5a2').lerp(new THREE.Color('#242e4c'),nightMix));
  scene.fog.color.copy(scene.background);
@@ -745,6 +759,7 @@ function renderAt(t){
  animateEnvironment(currentTime,nightMix);
  const shot=getCinematicCamera(st,currentTime);
  character.rotation.y=shot.angle;
+  toonActor.root.rotation.y=shot.angle;
   // Camera clearance is computed from scene positions (deterministic when seeking).
   const safeCamera=cameraSafePosition(shot.look,shot.cam);
   camera.position.copy(safeCamera);
@@ -807,6 +822,16 @@ async function exportVideo(){
 }
 document.getElementById('buildBtn').addEventListener('click',()=>{if(recording)return;compile()});
 document.getElementById('exampleBtn').addEventListener('click',()=>{if(recording)return;scriptEl.value=exampleScript;compile()});
+for(const [id,style] of [['toonActorBtn','toon'],['classicActorBtn','classic']]){
+  document.getElementById(id).addEventListener('click',()=>{
+    if(recording)return;
+    actorStyle=style;
+    document.getElementById('toonActorBtn').classList.toggle('active',style==='toon');
+    document.getElementById('classicActorBtn').classList.toggle('active',style==='classic');
+    document.getElementById('actorLabel').textContent=style==='toon'?'Toon Stickman':'Original Raju';
+    renderAt(currentTime);
+  });
+}
 document.getElementById('walkTestBtn').addEventListener('click',()=>{if(recording)return;scriptEl.value=`Subah ka mohalla.
 Camera wide shot.
 Raju gali mein chalta hai.

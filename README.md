@@ -1,15 +1,17 @@
-# Mohalla Studio — Cinematic v3
+# Mohalla Studio — Cinematic v4
 
-A standalone **Three.js 3D Indian mohalla** prototype with a 2.5D illustrated character, cinematic camera and storyboard tools. This is a **separate project** from `boidbit/insta-shorts`.
+Independent **Three.js Indian mohalla video studio**, separate from `boidbit/insta-shorts`.
 
-## Features
-- Reusable Indian neighborhood environment with shops, street objects, NPCs and day/night lighting.
-- Layered character puppet (head, torso, animated arms and legs).
-- Smoother walking/running, acceleration and braking, turning, dust and foot-contact shadows.
-- Cinematic tracking, wide and close-up camera shots with basic obstruction avoidance.
-- Script timeline preview, 9:16 / 16:9 formats, voiceover upload and browser WebM recording.
+## Changes in v4
 
-## Run locally
+- Added a **Toon Stickman** character inspired by the procedural body proportions, facial expressions and pose animation of `boidbit/insta-shorts/studio/characters.py` and `studio/actions.py`. The character was **ported to JavaScript/Canvas2D**, not cloned as a 3D model.
+- Original Raju character is retained. Use the **Character style** switch to compare both character designs.
+- Distance-driven walk/run cycles, two-bone leg IK and an approximate fixed floor contact through each stance phase.
+- Toon character now supports talk, wave, look, dance and jump with animated arms and expressions.
+- Cinematic camera gets subtle horizontal rule-of-thirds composition for medium/close-up shots.
+- Preserved the original storyboard, time scrubbing, Three.js neighborhood, day/night lighting and WebM recording.
+
+## Run
 
 ```bash
 git clone https://github.com/boidbit/mohalla-studio.git
@@ -17,15 +19,16 @@ cd mohalla-studio
 python -m http.server 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in Chrome or Edge. Three.js loads from jsDelivr and needs internet.
+Open **http://localhost:8000** in Chrome/Edge. Internet is needed for the Three.js CDN. In Studio choose **Toon Stickman** or **Original Raju**, press **Walk Test**, and compare **Cinematic** vs **Steady Follow** shots.
 
-## Project files
+## Files
 
-- `index.html` — Three.js world, studio UI, animation and camera logic.
-- `assets/head.png`, `assets/torso.png`, `assets/leg_left.png`, `assets/leg_right.png` — original character's sprite layers.
+- `index.html`: Three.js mohalla, storyboard UI, camera and export.
+- `src/toon-stickman.js`: JS procedural character and animation based on the *insta-shorts* style.
+- `assets/head.png`, `torso.png`, `leg_left.png`, `leg_right.png`: original illustrated Raju sprite layers.
 
-## Current limitations
-Character is a 2.5D paper puppet, not a fully rigged 3D humanoid. Walking physics and camera collision are approximations. MP4 conversion requires FFmpeg; the in-browser recorder produces WebM. Script parser supports predefined actions, not arbitrary AI-directed acting yet.
+## Limits
 
-## Next focus
-Polish character movement, interaction with the ground, camera composition, lighting and mohalla detail before building automatic script-to-video generation.
+This is **2.5D** character animation inside a 3D world; it is not a fully rigged 3D humanoid. Foot planting and camera occlusion are approximations, not rigid-body physics. Hindi speech synthesis and arbitrary AI-written actions are not yet implemented. The browser exporter records WebM (not native MP4). Rendering has not been visually verified against an online Three.js runtime in this environment.
+
+The separate `insta-shorts` repository was **not modified**.
