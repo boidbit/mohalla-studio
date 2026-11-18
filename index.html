@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Mohalla Studio — Cinematic Motion v3</title>
+<style>
+  *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#edcead;font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;user-select:none;-webkit-user-select:none}
+  #game{width:100%;height:100%;display:block;touch-action:none}
+  #vignette{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at 50% 46%,transparent 46%,rgba(72,34,23,.14) 100%)}
+  .topbar{position:fixed;left:22px;top:20px;right:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
+  .brand,.status,.map-card,.instructions,.location,.interaction,.dialog,.menu{background:rgba(255,249,237,.87);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 28px rgba(77,49,27,.14)}
+  .brand{padding:13px 17px;border-radius:19px;min-width:225px}
+  .brand-eyebrow{color:#bd6547;font-size:9px;font-weight:900;letter-spacing:2.3px}
+  .brand-main{font-size:25px;font-weight:950;letter-spacing:-1.2px;color:#292521;line-height:1.08;margin-top:4px}
+  .brand-sub{color:#84796a;font-size:11px;margin-top:5px;font-weight:600}
+  .righttools{display:flex;align-items:flex-start;gap:10px;pointer-events:auto}
+  .pill{display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.8);background:rgba(255,249,237,.9);padding:11px 14px;border-radius:14px;font-size:12px;color:#4a3c31;font-weight:800;box-shadow:0 6px 25px rgba(77,49,27,.12)}
+  button{font-family:inherit;cursor:pointer} .pillbutton{transition:transform .15s} .pillbutton:hover{transform:translateY(-2px)}
+  .map-card{position:fixed;right:22px;top:89px;border-radius:20px;padding:12px;pointer-events:none}
+  .map-header{display:flex;justify-content:space-between;font-size:10px;font-weight:900;letter-spacing:1.2px;margin:0 4px 8px;color:#645141}
+  #minimap{border-radius:11px;display:block;width:164px;height:164px;background:#d8ccad}
+  .instructions{position:fixed;left:22px;bottom:22px;padding:16px 18px;border-radius:18px;width:290px}
+  .instructions strong{display:block;font-size:13px;color:#342c24;margin-bottom:10px}
+  .control{display:flex;align-items:center;justify-content:space-between;color:#5b5346;font-size:12px;margin:7px 0}
+  .keys{display:flex;gap:4px}.key{background:#fff;border:1px solid #daccb8;border-bottom-width:3px;border-radius:6px;padding:4px 7px;font-size:10px;min-width:24px;text-align:center;font-weight:850;color:#5c4d43}
+  .location{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);border-radius:18px;padding:12px 23px;text-align:center;min-width:205px;pointer-events:none}
+  .location .tiny{color:#9d7659;font-size:9px;text-transform:uppercase;font-weight:900;letter-spacing:2px}.location #location-name{font-weight:900;font-size:17px;color:#42382d;margin-top:3px}
+  .interaction{position:fixed;bottom:113px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:12px;border-radius:16px;padding:10px 14px;cursor:pointer;pointer-events:auto;white-space:nowrap}
+  .interaction.show{display:flex}.interaction .key{font-size:14px}.interaction b{font-size:13px;color:#39322a}.interaction span{font-size:11px;color:#94735c}
+  .dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);border-radius:24px;padding:25px;width:min(350px,calc(100vw - 36px));z-index:5;display:none;text-align:center}
+  .dialog.show{display:block;animation:pop .16s ease both}@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  .dialog .emoji{font-size:45px;margin-bottom:10px}.dialog h2{margin:0;font-size:23px;letter-spacing:-.6px;color:#2c2822}.dialog p{line-height:1.6;color:#6d6154;font-size:14px;margin:11px 0 18px}
+  .action{background:#cf6343;color:white;border:0;border-radius:12px;padding:12px 23px;font-weight:900;width:100%;font-size:13px}
+  #toast{position:fixed;top:75px;left:50%;transform:translate(-50%,-10px);pointer-events:none;background:rgba(42,34,27,.9);color:white;border-radius:100px;padding:10px 18px;font-size:12px;font-weight:800;opacity:0;transition:.2s;white-space:nowrap;z-index:7}#toast.show{opacity:1;transform:translate(-50%,0)}
+  #mobilecontrols{display:none;position:fixed;bottom:25px;left:22px;right:22px;pointer-events:none;align-items:end;justify-content:space-between}
+  #joybase{width:118px;height:118px;border-radius:50%;position:relative;background:#fff8;border:2px solid #fff9;box-shadow:0 5px 22px #5336;touch-action:none;pointer-events:auto}
+  #joyknob{position:absolute;width:55px;height:55px;border-radius:50%;left:31px;top:31px;background:#fff9;border:2px solid #fff;box-shadow:0 4px 14px #5335;pointer-events:none}
+  .touchbuttons{display:flex;gap:10px;pointer-events:auto}.touchbtn{width:67px;height:67px;border-radius:50%;background:#fff9;border:2px solid white;box-shadow:0 6px 22px #5336;color:#493b2e;font-size:15px;font-weight:900;touch-action:none}.touchbtn:active{background:#ffdbaa}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#f8e8d2;z-index:10;color:#553a2c;font-size:16px;font-weight:900;transition:opacity .7s}
+  #loading .spinner{width:40px;height:40px;border:4px solid #d8c2a8;border-top-color:#cd6542;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+  #loading small{font-size:11px;font-weight:500;color:#987c65}
+  .footnote{position:fixed;right:24px;bottom:20px;font-size:10px;color:#5e4635a0;text-shadow:0 1px #fffa;pointer-events:none}
+  @media(max-width:800px){.topbar{left:12px;right:12px;top:12px}.brand{padding:10px 12px;min-width:160px}.brand-main{font-size:21px}.brand-sub{font-size:9px}.brand-eyebrow{font-size:8px}.pill{padding:9px;font-size:10px}.righttools{gap:5px}.map-card{top:77px;right:12px;padding:7px;border-radius:13px}.map-header{font-size:8px;margin:0 3px 4px}#minimap{width:111px;height:111px}.instructions{display:none}#mobilecontrols{display:flex}.location{bottom:12px;padding:7px 13px;min-width:145px}.location #location-name{font-size:13px}.location .tiny{font-size:8px}.interaction{bottom:169px}.footnote{display:none}}
+  @media(max-width:390px){.pill#countpill{display:none}.brand{min-width:145px}.brand-main{font-size:19px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js"}}</script>
+
+<style id="studio-style">
+  html,body{background:#0d1017!important;color:#eef2fa;font-family:Inter,system-ui,'Segoe UI',sans-serif!important;overflow:hidden}
+  .topbar,.map-card,.instructions,.location,.interaction,.dialog,#mobilecontrols,.footnote,#toast,#vignette{display:none!important}
+  #loading{background:#0d1017;color:#f2f2fa}
+  #studio{position:fixed;inset:0;display:grid;grid-template-columns:356px minmax(0,1fr);z-index:3;background:#0d1017}
+  #editor{background:#171c28;border-right:1px solid #313746;display:flex;flex-direction:column;min-height:0;z-index:4}
+  .studio-brand{padding:24px 22px 16px;border-bottom:1px solid #313746}
+  .kicker{font-size:10px;color:#e5a866;letter-spacing:2.3px;font-weight:850}
+  .studio-brand h1{font-size:24px;line-height:1.05;letter-spacing:-.7px;margin:8px 0 5px;color:#fff;font-weight:900}
+  .muted{color:#9ba6b9;font-size:12px;line-height:1.6}
+  .settings{padding:18px 18px 23px;overflow:auto;flex:1;min-height:0}
+  label.fld{display:block;margin:0 0 9px;color:#dce5f6;font-size:12px;font-weight:750}
+  #scriptText{width:100%;min-height:285px;resize:vertical;padding:14px;background:#101520;border:1px solid #3d4659;color:#eaf0fa;border-radius:12px;outline:none;font-size:12.5px;line-height:1.7;user-select:text;font-family:inherit}
+  #scriptText:focus{border-color:#e9a760;box-shadow:0 0 0 2px #e9a76022}
+  .hint{font-size:11px;color:#96a3b7;line-height:1.6;margin:7px 1px 14px}
+  button.studiobtn{border:1px solid #434b5e;background:#292f3d;color:#f2f5fa;border-radius:11px;padding:11px 13px;font-size:12px;font-weight:850;transition:.12s;white-space:nowrap;cursor:pointer}
+  button.studiobtn:hover{filter:brightness(1.17)}
+  button.studiobtn.primary{background:#edab66;color:#1f1710;border-color:#edab66}
+  button.studiobtn.success{background:#4eac87;color:#071d19;border-color:#4eac87}
+  button.studiobtn:disabled{opacity:.4;cursor:not-allowed}
+  .buttonrow{display:flex;gap:8px;flex-wrap:wrap}.buttonrow>*{flex:1}
+  .sectionhead{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;color:#f5f6fa;margin:19px 0 10px}
+  #sceneCount{color:#e9ad70;font-size:11px}
+  .shot{display:flex;gap:11px;align-items:flex-start;padding:10px 11px;margin-bottom:7px;background:#202633;border:1px solid #353d4d;border-radius:10px;cursor:pointer}
+  .shot:hover{border-color:#a57d5d}.shot.active{background:#322e2b;border-color:#dda26b}
+  .shot-emoji{font-size:18px;line-height:1.2}.shot b{display:block;font-size:11.5px;color:#e6ecf8;margin-bottom:3px}
+  .shot small{font-size:10.5px;color:#97a2b3;line-height:1.4;display:block}
+  .segmenttime{font-size:10px;color:#ddab7e;margin-left:auto;white-space:nowrap}
+  .smalltoggle{display:flex;gap:8px;margin-top:10px}
+  .toggle{border:1px solid #424b5b;border-radius:9px;background:#252b37;color:#b7c1cf;padding:9px 11px;cursor:pointer;flex:1;font-size:11px;font-weight:850}
+  .toggle.active{background:#dc9f61;color:#1a1918;border-color:#dc9f61}
+  #voiceInput{width:100%;font-size:11px;color:#c4ccd9;max-width:100%}#voiceInput::file-selector-button{padding:8px;border-radius:8px;background:#303b4c;color:#fff;border:1px solid #465068;margin-right:9px}
+  #workarea{display:flex;flex-direction:column;min-width:0;min-height:0}
+  .worktop{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #293342;min-height:64px;padding:12px 24px}
+  .worktop strong{font-size:13px;font-weight:850}.worktop .muted{font-size:10.5px}
+  #status{font-size:11px;font-weight:750;color:#a4b2c5;background:#242d3b;padding:8px 12px;border-radius:50px;max-width:320px}
+  .stageouter{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:16px 25px;background:radial-gradient(ellipse at center,#222735,#0c1119 72%)}
+  #stage{position:relative;aspect-ratio:9/16;height:min(100%,720px);width:auto;max-width:100%;background:#d8ae8d;border:1px solid #474b5b;overflow:hidden;border-radius:12px;box-shadow:0 22px 70px #0009;display:block}
+  #game,#videoCanvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
+  #game{opacity:0;pointer-events:none;z-index:0}
+  #videoCanvas{z-index:1}
+  .transport{padding:16px 22px 18px;border-top:1px solid #303746;background:#171c27}
+  #scrub{width:100%;accent-color:#e6a15e;cursor:pointer;margin:0 0 11px}
+  .transportrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .time{color:#bcc5d2;min-width:100px;font-size:11px;font-variant-numeric:tabular-nums;font-weight:750}
+  .exportnote{color:#7f8a9d;font-size:10px;margin-top:10px;line-height:1.5}
+  #recordHint{font-size:10.5px;color:#e6a768;margin-top:10px;display:none}
+  .introTag{background:#2e3546;padding:3px 6px;border-radius:4px;font-size:9px;color:#f4c88f;margin-left:7px}
+  @media (max-width:820px){#studio{grid-template-columns:1fr;grid-template-rows:280px minmax(0,1fr)}#editor{border-bottom:1px solid #2b3446;border-right:0}.studio-brand{padding:12px 15px}.studio-brand h1{font-size:19px;margin:4px 0 1px}.settings{padding:10px 12px}.settings #scriptText{min-height:105px;height:105px}.hint{margin:3px 0 7px}.sectionhead{margin:9px 0 6px}.storyboard{display:none}#workarea .worktop{min-height:40px;padding:5px 12px}.stageouter{padding:7px}.transport{padding:9px 12px}.exportnote{display:none}#stage{border-radius:6px}}
+</style>
+</head>
+<body>
+
+<div id="studio">
+  <aside id="editor">
+    <header class="studio-brand"><div class="kicker">✦ CARTOON FILM MAKER</div><h1>MOHALLA <span style="color:#e9a966">STUDIO.</span><span class="introTag">CINEMA v3</span></h1><div class="muted">Apni script likho • scene banao • video nikalo</div></header>
+    <div class="settings">
+      <label class="fld" for="scriptText">1. Script / Kahani</label>
+      <textarea id="scriptText" spellcheck="false">Subah ka mohalla. Raju gali mein chalta hai.
+Raju chai ki tapri par jaata hai.
+Camera close-up.
+Raju kehta hai: "Bhaiya, ek kadak chai dena!"
+Raju haath hilata hai.
+Camera wide shot.
+Raju chowk ki taraf daudta hai.
+Raju ruk kar idhar-udhar dekhta hai.</textarea>
+      <p class="hint">Ek action per line best hai. Supports: walk, run, chai shop, kirana, sabzi, wave, jump, look, dialogue, close-up/wide camera, day/night. Unsupported actions appear as captions.</p>
+      <div class="buttonrow"><button class="studiobtn primary" id="buildBtn">✦ Generate Scenes</button><button class="studiobtn" id="exampleBtn">↺ Sample</button><button class="studiobtn" id="walkTestBtn">🚶 Walk Test</button></div>
+      <div class="sectionhead"><span>2. Video format</span><span id="ratioLabel">Reels • 9:16</span></div>
+      <div class="smalltoggle"><button class="toggle active" id="portraitBtn">9:16 Portrait</button><button class="toggle" id="landscapeBtn">16:9 Landscape</button></div>
+      <div class="sectionhead"><span>3. Camera style</span><span id="cameraLabel">Auto Director</span></div>
+      <div class="smalltoggle"><button class="toggle active" id="cinemaBtn">🎬 Cinematic</button><button class="toggle" id="steadyBtn">📷 Steady Follow</button></div>
+      <div class="sectionhead"><span>4. Voiceover (optional)</span></div>
+      <input id="voiceInput" type="file" accept="audio/*"/><div class="hint">Upload apni voice/audio file. Captions script se aayenge. Automatic AI voice aur lip-sync abhi included nahi hain.</div>
+      <div class="storyboard"><div class="sectionhead"><span>Storyboard</span><span id="sceneCount">0 scenes</span></div><div id="shots"></div></div>
+    </div>
+  </aside>
+  <main id="workarea">
+    <div class="worktop"><div><strong>Live scene preview <span class="introTag">THREE.JS</span></strong><div class="muted">Foot-aware walking • articulated arms • smart cinematic camera</div></div><span id="status">Ready</span></div>
+    <div class="stageouter"><div id="stage"><canvas id="game"></canvas><canvas id="videoCanvas"></canvas></div></div>
+    <div class="transport">
+      <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Video timeline"/>
+      <div class="transportrow"><span class="time" id="timeDisplay">00:00 / 00:00</span><div class="buttonrow"><button class="studiobtn" id="restartBtn">⏮ Start</button><button class="studiobtn primary" id="playBtn">▶ Preview</button><button class="studiobtn success" id="exportBtn">⬇ Record WebM</button></div></div>
+      <div id="recordHint">🔴 Recording in real time. Keep this tab open until the video finishes.</div>
+      <div class="exportnote">Articulated 2.5D paper puppet: head, arms, legs and footfall correction; not yet a full 3D skeletal character. Camera can be switched. Video export browser ke MediaRecorder se hota hai. Best Chrome/Edge; audio optional. WebM ko baad mein MP4 mein convert kar sakte ho.</div>
+    </div>
+  </main>
+</div>
+<div id="vignette"></div>
+<div id="loading"><div class="spinner"></div>Apna Mohalla ban raha hai...<small>Three.js load hone ke liye internet chahiye</small></div>
+<div class="topbar"><div class="brand"><div class="brand-eyebrow">✦ MADE IN INDIA • LITTLE WORLD</div><div class="brand-main">APNA MOHALLA <span style="color:#d66f4b">.</span></div><div class="brand-sub">Ghar ki galiyon mein ek chhoti si walk ☕</div></div><div class="righttools"><div class="pill" id="countpill">🏪 <span id="visited-count">0 / 8 shops explored</span></div><button class="pill pillbutton" id="daynight" title="Change time of day">🌙 <span>Raat</span></button></div></div>
+<div class="map-card"><div class="map-header"><span>📍 MOHALLA MAP</span><span>N ↑</span></div><canvas id="minimap" width="328" height="328"></canvas></div>
+<div class="instructions"><strong>👋 Chalo galiyon mein ghoomein!</strong><div class="control">Walk <div class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></div></div><div class="control">Run <div class="keys"><span class="key">SHIFT</span></div></div><div class="control">Camera <div class="keys"><span class="key">DRAG MOUSE</span></div></div><div class="control">Shops mein baat <div class="keys"><span class="key">E</span></div></div><div class="control">Zoom <div class="keys"><span class="key">SCROLL</span></div></div></div>
+<div class="location"><div class="tiny">YOU ARE HERE</div><div id="location-name">Mohalla Chowk</div></div>
+<div class="interaction" id="interaction"><span class="key">E</span><div><b id="near-title">Dukaan</b><div><span>Andar jhaankne ke liye</span></div></div>👉</div>
+<div id="toast"></div>
+<div class="dialog" id="dialog"><div class="emoji" id="shop-emoji">☕</div><h2 id="shop-title">Chai ki Tapri</h2><p id="shop-text">Ek cutting chai ho jaaye?</p><button class="action" id="close-dialog">Chalo, aage chalte hain →</button></div>
+<div id="mobilecontrols"><div id="joybase"><div id="joyknob"></div></div><div class="touchbuttons"><button class="touchbtn" id="touchrun">🏃</button><button class="touchbtn" id="touchact">💬</button></div></div>
+<div class="footnote">Stylized Indian street • Three.js • v1.0</div>
+<script type="module">
+import * as THREE from 'three';
+
+// ─── A portable, edit-friendly procedural Three.js neighborhood ─────────────
+const canvas=document.getElementById('game');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<800?1.15:1.45)); renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=innerWidth>700;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.37;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#e8c5a2');scene.fog=new THREE.Fog('#e8c5a2',57,182);
+const camera=new THREE.PerspectiveCamera(54,innerWidth/innerHeight,.12,250);camera.position.set(12,13,25);
+const ambient=new THREE.HemisphereLight('#fff3d9','#9d775e',2.0);scene.add(ambient);
+const sun=new THREE.DirectionalLight('#ffe4b6',3.1);sun.position.set(-44,72,-22);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-105;sun.shadow.camera.right=105;sun.shadow.camera.top=105;sun.shadow.camera.bottom=-105;sun.shadow.camera.near=1;sun.shadow.camera.far=230;sun.shadow.bias=-0.00035;scene.add(sun);sun.target.position.set(0,0,0);scene.add(sun.target);
+const mats={};const M=(color,rough=.92)=>mats[color]??(mats[color]=new THREE.MeshStandardMaterial({color,roughness:rough}));
+const black=M('#2b302b'),iron=M('#49483f'),wood=M('#835743'),paper=M('#efe5cf'),sand=M('#d5c3a4'),concrete=M('#a9a08d'),white=M('#f9e7cc'),gold=M('#e4ad61'),leaf=M('#568364');
+const world=new THREE.Group();scene.add(world);const blockers=[];const shops=[];const lamps=[];const animated=[];let visited=new Set();
+function cube(parent,x,y,z,w,h,d,mat,shadow=true){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);o.castShadow=shadow;o.receiveShadow=true;parent.add(o);return o}
+function ball(parent,x,y,z,r,mat,segments=12){let o=new THREE.Mesh(new THREE.SphereGeometry(r,segments,9),mat);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}
+function cyl(parent,x,y,z,r,ht,mat,seg=12,rTop=r){let o=new THREE.Mesh(new THREE.CylinderGeometry(rTop,r,ht,seg),mat);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}
+function plane(parent,x,y,z,w,h,material,angle=0){const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),material);o.position.set(x,y,z);o.rotation.y=angle;parent.add(o);return o}
+function ground(parent,x,z,w,d,color,y=.01){let o=new THREE.Mesh(new THREE.PlaneGeometry(w,d),M(color));o.rotation.x=-Math.PI/2;o.position.set(x,y,z);o.receiveShadow=true;parent.add(o);return o}
+function line3(parent,coords,material=iron,r=.028){let curve=new THREE.CatmullRomCurve3(coords.map(p=>new THREE.Vector3(...p)));let obj=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,coords.length*7),r,4,false),material);parent.add(obj);return obj}
+function rng(seed){let n=seed;return ()=>((n=Math.imul(n^n>>>15,1|n)+0x6D2B79F5|0),((n^n>>>14)>>>0)/4294967296)}
+const rand=rng(305092);const pick=arr=>arr[Math.floor(rand()*arr.length)];
+
+// ─── The roads and the small town blocks ─────────────────────────────────────
+ground(world,0,0,240,240,'#bcae91',-.075);
+const roadX=[-56,0,56],roadZ=[-58,0,58];
+for(const x of roadX){ground(world,x,0,14.2,226,'#aaa394',.007);ground(world,x-7.35,0,.55,226,'#8c8275',.028);ground(world,x+7.35,0,.55,226,'#8c8275',.028)}
+for(const z of roadZ){ground(world,0,z,226,14.2,'#aaa394',.011);ground(world,0,z-7.35,226,.55,'#8c8275',.032);ground(world,0,z+7.35,226,.55,'#8c8275',.032)}
+for(let z=-109;z<=109;z+=9){if(roadZ.some(s=>Math.abs(s-z)<10))continue;for(const x of roadX)ground(world,x,z,.1,3.2,'#d9cdaf',.034)}
+for(let x=-109;x<=109;x+=10){if(roadX.some(s=>Math.abs(s-x)<10))continue;for(const z of roadZ)ground(world,x,z,3.0,.1,'#d8cbb1',.035)}
+// Rough, irregular road patches
+for(let i=0;i<165;i++){let x=(rand()-.5)*220,z=(rand()-.5)*220;let nx=roadX.some(c=>Math.abs(x-c)<6),nz=roadZ.some(c=>Math.abs(z-c)<6);if(nx||nz){let p=ground(world,x,z,.4+rand()*2,.3+rand()*1.5,rand()>.5?'#a59d8c':'#b1a896',.042);p.rotation.z=(rand()-.5)*.2}}
+// Drain grates + short curb pavers
+for(let z=-103;z<107;z+=11){if(roadZ.some(v=>Math.abs(v-z)<8))continue;for(let x of [-7.25,7.25]){cube(world,x,.04,z,.6,.11,4.9,concrete,false);for(let k=0;k<5;k++)cube(world,x,.12,z-1.7+k*.83,.64,.03,.09,iron,false)}}
+
+// ─── Painted Indian shop sign canvas textures ────────────────────────────────
+function signTexture(title,subtitle,bg,fg='#ffffff'){
+ const c=document.createElement('canvas');c.width=1024;c.height=256;const ctx=c.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,1024,256);
+ ctx.fillStyle='#ffffff20';for(let i=0;i<12;i++){ctx.fillRect(i*115-40,-28,40,330)}
+ ctx.strokeStyle='#ffffffa8';ctx.lineWidth=9;ctx.strokeRect(12,12,1000,232);
+ ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=fg;ctx.font='900 '+(title.length>14?67: title.length>10?76:94)+'px Arial, sans-serif';ctx.fillText(title,512,111,950);
+ ctx.font='bold 34px Arial, sans-serif';ctx.fillText(subtitle.toUpperCase(),512,196,900);
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;return tex;
+}
+const storedefs={
+ '-17.5,-18':{name:'RAJU SALON',sub:'HAIR CUT • SHAVE',color:'#126a70',emoji:'💈',talk:'Raju bhai: “Bhaiya, ekdum hero waali cutting kar dein? ₹70 mein!”'},
+ '17.5,-18':{name:'CHAI KI TAPRI',sub:'KADAK CHAI • BUN MAKKHAN',color:'#a84526',emoji:'☕',talk:'Chaiwala: “Arre bhai, aao! Garma-garam kadak chai aur bun maska ready hai!”'},
+ '-17.5,18':{name:'SHARMA KIRANA',sub:'DAAL • CHAWAL • NAMKEEN',color:'#9b5c26',emoji:'🛒',talk:'Sharma ji: “Kya chahiye beta? Biscuit, Maggi, namkeen... sab milega!”'},
+ '17.5,18':{name:'MEDICAL STORE',sub:'SEHAT PHARMACY',color:'#288268',emoji:'💊',talk:'Chemist: “Namaste ji! Dawai chahiye? Doctor ka prescription saath hai?”'},
+ '-17.5,-40':{name:'PAPPU PAAN',sub:'PAAN • COLD DRINKS',color:'#356d51',emoji:'🌿',talk:'Pappu: “Bhaiya, meetha paan banaa dein? Mohalle ka famous hai!”'},
+ '17.5,40':{name:'SABZI WALA',sub:'TAZI SABZI ROZ',color:'#42834b',emoji:'🥬',talk:'Sabziwale: “Tamatar le lo, aloo le lo! Aaj taaza maal aaya hai!”'},
+ '17.5,-75':{name:'MITHAI & LASSI',sub:'JALEBI • SAMOSA • LASSI',color:'#ad5737',emoji:'🥛',talk:'Halwai: “Bhaisaab! Garam jalebi aur thandi lassi ka maza hi kuch aur hai!”'},
+ '-17.5,75':{name:'MOBILE REPAIR',sub:'RECHARGE • ACCESSORIES',color:'#3e6190',emoji:'📱',talk:'Repairwale: “Phone ka display? Charger? Sab sasta aur badiya!”'}
+};
+const houseColors=['#e9bfa0','#e7c38a','#b1c8b2','#c6ada5','#a8c3cb','#e0b0a0','#f0d2a6','#d5b79a','#b8bcd2','#b3c9a4','#d6aa80'];
+const trimColors=['#f6e1c1','#ecebd9','#d7b99e','#d6d2c0'];
+function house(x,z,seed){
+ const key=`${x},${z}`;const store=storedefs[key];const w=17.8,d=18.2;const floors=store?2:pick([2,2,2,3]);const h=floors===3?11.4:7.8;
+ // Local front points along +Z; turn toward closest street
+ let front,nearX=roadX.reduce((a,b)=>Math.abs(b-x)<Math.abs(a-x)?b:a),nearZ=roadZ.reduce((a,b)=>Math.abs(b-z)<Math.abs(a-z)?b:a);
+ if(store||Math.abs(nearX-x)<Math.abs(nearZ-z)) front=(nearX>x)?Math.PI/2:-Math.PI/2;
+ else front=(nearZ>z)?0:Math.PI;
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=front;world.add(g);
+ const wall=M(pick(houseColors));const trim=M(pick(trimColors));
+ cube(g,0,h/2,0,w,h,d,wall);
+ cube(g,0,.3,0,w+.2,.6,d+.2,M('#a5917d'));
+ cube(g,0,h+.07,0,w+.55,.22,d+.55,trim);
+ for(let s of [-1,1]){cube(g,s*(w/2-.15),h+.5,0,.32,.93,d+.5,trim);cube(g,0,h+.5,s*(d/2-.15),w+.3,.93,.3,trim)}
+ // Ground-level doorway/entrance
+ if(store){
+   cube(g,0,1.52,d/2+.085,5.0,3.05,.14,M('#817161'));
+   for(let k=-3;k<=3;k++)cube(g,0,1.0+k*.38,d/2+.18,4.88,.045,.06,M('#a99a8c'));
+   cube(g,0,3.72,d/2+.17,13,2.15,.21,M(store.color));
+   plane(g,0,3.72,d/2+.31,12.65,1.83,new THREE.MeshBasicMaterial({map:signTexture(store.name,store.sub,store.color),side:THREE.DoubleSide}));
+   // Candy-stripe awning on a metal overhang
+   cube(g,0,3.03,d/2+1.25,11,.16,2.1,M('#e4b98b'));
+   for(let j=0;j<10;j++)cube(g,-4.95+j*1.1,3.08,d/2+1.2,.57,.035,2.0,j%2?M('#f0e3d0'):M('#c76c54'),false);
+   // Outside shop stools, not on road
+   for(let n of [-1,1]){cyl(g,n*4.0,.35,d/2+2.4,.47,.65,wood,10)}
+ }else{
+   cube(g,-1.5,1.6,d/2+.08,2.6,3.16,.15,wood);
+   cube(g,-1.5,1.6,d/2+.19,2.2,2.77,.07,M('#9e775b'));
+   cube(g,-.8,1.5,d/2+.26,.13,.13,.14,gold);
+   // Little Hindi style house number tile
+   cube(g,1.2,2.92,d/2+.12,1.5,.48,.1,M('#fcf5de'),false);
+ }
+ // Windows, painted surrounds, dark inner openings, grilles
+ const glass=M('#526f73'),windowTrim=M('#efdfbd');
+ for(let floor=1;floor<floors;floor++){
+   let cy=floor*3.55+1.1;
+   for(let wx of [-4.8,4.8]){
+     cube(g,wx,cy,d/2+.14,3.02,2.4,.24,windowTrim);
+     cube(g,wx,cy,d/2+.30,2.66,2.06,.09,glass);
+     for(let dx of [-.7,.7])cube(g,wx+dx,cy,d/2+.37,.08,2.02,.065,iron,false);
+     cube(g,wx,cy,d/2+.37,2.64,.07,.067,iron,false);
+   }
+   if(rand()>.32){
+     cube(g,0,cy-1.46,d/2+.9,14,.22,2.05,trim);
+     for(let k=-6;k<=6;k++)cube(g,k,cy-.69,d/2+1.76,.06,1.35,.06,iron,false);
+     cube(g,0,cy+.03,d/2+1.76,13.8,.065,.07,iron,false);
+   }
+ }
+ // Side windows
+ for(let side of [-1,1])for(let floor=1;floor<floors;floor++){
+  const wy=floor*3.55+1.0;cube(g,side*(w/2+.09),wy,-2.8,.12,2.1,2.2,windowTrim);cube(g,side*(w/2+.17),wy,-2.8,.08,1.78,1.9,glass);
+ }
+ // Tank, plumbing, satellite dishes and roof clotheslines
+ if(rand()>.48){const tx=-5+rand()*9,tz=-3+rand()*7;cube(g,tx,h+.22,tz,2.5,.25,2.5,concrete);cyl(g,tx,h+1.2,tz,1,1.75,M('#262e37'),14);cyl(g,tx,h+2.13,tz,1.05,.14,M('#20252c'),14)}
+ if(rand()>.66){const dx=4;let dish=cyl(g,dx,h+1.02,-2,.65,.08,M('#b9bfc1'),16);dish.rotation.z=Math.PI/4;cube(g,dx,h+.58,-2,.08,1.2,.08,iron)}
+ if(rand()>.66){line3(g,[[-5,h+.95,-5],[0,h+1.05,-5],[5,h+.95,-5]],M('#645e50'),.02);for(let n=0;n<3;n++)cube(g,-3+n*2.8,h+.58,-5,.95,.8,.04,M(pick(['#eb7872','#5aa5af','#eab85f','#e1e1ce'])),false)}
+ // Small exterior plants and steps
+ if(!store){cube(g,-1.6,.11,d/2+1.05,3.5,.2,1.45,concrete,false);let potX=4.8;cyl(g,potX,.45,d/2+1.6,.43,.83,M('#a05a43'));ball(g,potX,1.15,d/2+1.6,.75,leaf)}
+ blockers.push({x,z,hw:w/2+.05,hd:d/2+.05,h:h+3});
+ if(store){let local=new THREE.Vector3(0,0,d/2+2.6).applyAxisAngle(new THREE.Vector3(0,1,0),front);let pos={x:x+local.x,z:z+local.z};shops.push({...store,...pos,key,visited:false});}
+}
+for(let ix=0;ix<8;ix++){let x=[-92.5,-71.5,-38.5,-17.5,17.5,38.5,71.5,92.5][ix];for(let iz=0;iz<8;iz++){let z=[-97,-75,-40,-18,18,40,75,97][iz];house(x,z,ix*123+iz)}}
+
+// ─── Street objects to give the scene that Indian mohalla feel ────────────────
+function tree(x,z,scale=1){let g=new THREE.Group();g.position.set(x,0,z);world.add(g);cyl(g,0,1.6*scale,0,.29*scale,3.2*scale,wood,9,.24*scale);
+ for(let i=0;i<4;i++){let th=(i*2.4);ball(g,Math.sin(th)*.72*scale,(3.55+(i%2)*.5)*scale,Math.cos(th)*.7*scale,(1.55+rand()*.22)*scale,M(pick(['#53794c','#658b55','#6f965d'])),9)}
+ blockers.push({x,z,hw:.85*scale,hd:.85*scale});}
+for(const p of [[-10,13],[-10,-14],[10,67],[-9,67],[10,-67],[-10,-66],[-66,9],[67,10],[66,-69],[-67,68],[-98,7],[98,-8]])tree(...p,.78+rand()*.3);
+function pole(x,z){let pole=new THREE.Group();pole.position.set(x,0,z);world.add(pole);cyl(pole,0,3.3,0,.14,6.6,M('#696660'),8,.11);cube(pole,0,6.1,0,2.45,.18,.17,wood);for(let k of [-.83,0,.83])ball(pole,k,6.12,0,.12,M('#dfdbcf'));return [x,z]}
+let polePoints=[];for(const z of [-91,-62,-32,23,51,82]){polePoints.push(pole(-8.4,z));polePoints.push(pole(8.4,z));}
+// Sagging black cable between poles and overhead cross-lane cables
+for(const x of [-8.4,8.4]){let zz=[-91,-62,-32,23,51,82];for(let i=0;i<zz.length-1;i++){line3(world,[[x,6.35,zz[i]],[x,5.7,(zz[i]+zz[i+1])/2],[x,6.35,zz[i+1]]],M('#363536'),.035)}}
+for(const z of [-62,-32,23,51])line3(world,[[-8.4,6.4,z],[0,5.72,z+.8],[8.4,6.4,z]],M('#353535'),.032);
+function lamp(x,z){const pole=new THREE.Group();pole.position.set(x,0,z);world.add(pole);cyl(pole,0,2.55,0,.12,5.1,iron,8);cube(pole,.65,5.05,0,1.34,.08,.13,iron);let bulb=ball(pole,1.26,4.91,0,.23,new THREE.MeshStandardMaterial({color:'#fff0b1',emissive:'#ffc375',emissiveIntensity:.14}),9);lamps.push(bulb)}
+for(const [x,z] of [[7.6,8],[-7.6,-8],[7.6,58],[-7.6,-58],[55,9],[-55,-9]])lamp(x,z);
+// Flags hanging across the main lane, over the player's head
+for(let z of [-44,35,82]){line3(world,[[-8.6,6.15,z],[0,5.75,z],[8.6,6.15,z]],M('#726458'),.017);
+ for(let i=0;i<13;i++){let x=-7.6+i*1.24,y=5.78+.28*Math.pow((x/8.6),2);cube(world,x,y-.33,z,.55,.63,.025,M(['#e9896a','#f4cc73','#73a9a8','#e2d8aa'][i%4]),false)}}
+// A simple roadside chai seating area and cycle rickshaw/food cart
+function scooter(x,z,col,rotation=0){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rotation;world.add(g);
+ for(let s of [-1,1]){let wheel=new THREE.Mesh(new THREE.TorusGeometry(.43,.12,6,12),black);wheel.position.set(0,.47,s*.9);wheel.rotation.y=Math.PI/2;g.add(wheel);}
+ cube(g,0,.97,0,.9,.45,1.42,M(col));cube(g,0,1.28,-.58,.77,.62,.25,M(col));cube(g,0,1.3,.55,.55,.13,.32,black);
+ cube(g,0,1.8,-.72,.07,.8,.08,iron);cube(g,0,2.14,-.72,1.08,.07,.1,iron);ball(g,0,1.05,-1.01,.16,M('#ffe9b2'),10);
+ blockers.push({x,z,hw:1.2,hd:1.5});}
+scooter(-9.9,-28,'#89a7b0',.48);scooter(10.1,28,'#ce6c52',-.4);scooter(-9.7,42,'#c1a757',.15);scooter(9.7,-82,'#91a26d',-.2);
+function cart(x,z){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=Math.PI/2;world.add(g);cube(g,0,1.35,0,2.8,.2,1.45,M('#a87951'));for(let sx of [-1,1]){let wh=cyl(g,sx*1, .47,0,.55,.18,black,12);wh.rotation.x=Math.PI/2;}for(let sx of [-1,1])for(let sz of [-1,1])cube(g,sx*1.15,1.0,sz*.55,.1,1,.1,iron);
+ for(let i=0;i<8;i++)ball(g,-1+i*.28,1.62,.1,.23,M(pick(['#a53725','#af6b2a','#5f944e','#a33b2d'])),8);
+ cube(g,0,3.02,0,3.35,.12,1.85,M('#d9ad6d'));for(let s of [-1,1])cube(g,s*1.35,2.35,0,.07,1.45,.08,iron);blockers.push({x,z,hw:1.4,hd:2.0});}
+cart(10.2,7.8);
+// Faint chalk rangoli near a house, colorful paint on road shoulders
+for(let p of [[-10,4],[10,-4],[-65,-8]]){
+ for(let a=0;a<8;a++){const ang=a*Math.PI/4;let o=ground(world,p[0]+Math.cos(ang)*.55,p[1]+Math.sin(ang)*.55,.32,.35,['#f0bb77','#ca897c','#86ad98'][a%3],.045);o.rotation.z=-ang;}
+}
+// Street dog, built from very few low-poly shapes
+function dog(x,z){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=1.15;world.add(g);let c=M('#aa8061');cube(g,0,.55,0,.7,.55,1.25,c);ball(g,0,.78,-.72,.36,c,10);for(let xx of [-.23,.23])for(let zz of [-.38,.38])cube(g,xx,.25,zz,.13,.47,.14,c);for(let xx of [-.22,.22]){let e=cube(g,xx,1.18,-.8,.16,.3,.13,c);e.rotation.z=xx*2;}let tail=cube(g,0,1.05,.65,.12,.68,.11,c);tail.rotation.x=-.6;animated.push({kind:'dog',g});}
+dog(-9.3,31);
+// Human locals, small stylized villagers near buildings
+function villager(x,z,shirt,pants,rot=0){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;world.add(g);let skin=M('#be8b67');cube(g,0,1.25,0,.65,1.4,.44,M(shirt));for(let xx of [-.19,.19])cube(g,xx,.35,0,.23,.8,.25,M(pants));ball(g,0,2.3,0,.44,skin,12);let hair=ball(g,0,2.61,-.04,.39,M('#242322'),12);hair.scale.y=.35;
+ for(let xx of [-1,1]){let arm=cube(g,xx*.47,1.4,0,.17,.95,.19,skin);arm.rotation.z=xx*.23;}animated.push({kind:'npc',g,seed:rand()*8});}
+for(let p of [[11,-20,'#a76748','#e7dec8',-1.57],[-11,20,'#63928a','#d9d3bc',1.57],[11,40,'#d18a5c','#ddd1b7',-1.57],[-11,76,'#a2a15b','#c7bdad',1.57],[59,-8,'#a36975','#d8d0bd',3.14]])villager(...p);
+// Auto-rickshaw parked at the far junction, classic green/yellow
+function autorickshaw(x,z){let g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=.85;world.add(g);cube(g,0,1.2,0,2.0,1.25,2.8,M('#27744e'));cube(g,0,1.95,0,2.1,.58,2.7,M('#e5bd54'));cube(g,0,1.85,-1.31,1.85,.8,.06,M('#4d5c59'));cube(g,0,1.86,1.31,1.85,.8,.07,M('#4d5c59'));for(let xx of [-.79,.79])for(let zz of [-.8,.8]){let wheel=cyl(g,xx,.47,zz,.46,.21,black);wheel.rotation.z=Math.PI/2}blockers.push({x,z,hw:2,hd:2.5})}
+autorickshaw(58,-4);
+
+// ─── The original character, treated as a 2.5D sprite in the 3D world ───────
+const player=new THREE.Group();player.position.set(0,0,12);scene.add(player);
+// Preserve the original illustration as three transparent paper-puppet layers.
+const textureLoader=new THREE.TextureLoader();
+function puppetLayer(url){const t=textureLoader.load(url);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return new THREE.Mesh(new THREE.PlaneGeometry(1.97,3.68),new THREE.MeshBasicMaterial({map:t,transparent:true,alphaTest:.07,side:THREE.DoubleSide,depthWrite:false}))}
+const character=new THREE.Group();character.position.y=1.83;player.add(character);
+const leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
+const PX=1.97/729, PY=3.68/1361;
+function placeLeg(pivot,mesh,px,py){const x=(px-729/2)*PX,y=(1361/2-py)*PY;pivot.position.set(x,y,0);mesh.position.set(-x,-y,0);pivot.add(mesh);character.add(pivot)}
+const leftMesh=puppetLayer('assets/leg_left.png');const rightMesh=puppetLayer('assets/leg_right.png');
+leftMesh.renderOrder=10;rightMesh.renderOrder=10;
+placeLeg(leftLeg,leftMesh,284,1052);placeLeg(rightLeg,rightMesh,433,1052);
+// CINEMA v3: artwork-preserving layered puppet: individually jointed head/arms/legs.
+const torsoMesh=puppetLayer('assets/torso.png');torsoMesh.renderOrder=14;torsoMesh.position.z=.016;character.add(torsoMesh);
+const headAnchor=new THREE.Group();headAnchor.position.set(0,(1361/2-590)*PY,.055);character.add(headAnchor);
+const headMesh=puppetLayer('assets/head.png');headMesh.renderOrder=25;headMesh.position.set(0,-(1361/2-590)*PY,0);headAnchor.add(headMesh);
+function sleeveTexture(){
+ const c=document.createElement('canvas');c.width=160;c.height=340;let g=c.getContext('2d');
+ g.lineWidth=24;g.lineJoin='round';g.strokeStyle='#171412';g.fillStyle='#fff0c9';
+ g.beginPath();g.roundRect(21,9,118,320,48);g.fill();g.stroke();
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+const sleeveMat=new THREE.MeshBasicMaterial({map:sleeveTexture(),transparent:true,alphaTest:.06,side:THREE.DoubleSide,depthWrite:false});
+function sleevePart(length,wd=.30){let m=new THREE.Mesh(new THREE.PlaneGeometry(wd,length),sleeveMat);m.position.y=-length/2;m.renderOrder=17;return m;}
+function palm(){const g=new THREE.Group();const edge=new THREE.Mesh(new THREE.CircleGeometry(.105,24),new THREE.MeshBasicMaterial({color:'#171412',side:THREE.DoubleSide,depthWrite:false}));edge.renderOrder=19;
+ const skin=new THREE.Mesh(new THREE.CircleGeometry(.080,24),new THREE.MeshBasicMaterial({color:'#e9a775',side:THREE.DoubleSide,depthWrite:false}));skin.position.z=.006;skin.renderOrder=20;g.add(edge,skin);return g;}
+function makeArm(side){const shoulder=new THREE.Group();shoulder.position.set(side*.31,.035,.037);
+ const upper=sleevePart(.47,.25);shoulder.add(upper);
+ const elbow=new THREE.Group();elbow.position.set(0,-.45,.008);elbow.add(sleevePart(.43,.23));shoulder.add(elbow);
+ const hand=palm();hand.position.set(0,-.43,.014);elbow.add(hand);
+ character.add(shoulder);return {shoulder,elbow,hand,side};}
+const armLeft=makeArm(-1),armRight=makeArm(1);
+const legRestY=[leftLeg.position.y,rightLeg.position.y];
+// Two non-physical ground contact patches provide readable footfall timing.
+const footContacts=[-1,1].map((s)=>{let m=new THREE.Mesh(new THREE.CircleGeometry(.22,18),new THREE.MeshBasicMaterial({color:'#34251f',transparent:true,opacity:.11,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=.045;player.add(m);return m;});
+const dustParticles=Array.from({length:6},()=>{const m=new THREE.Mesh(new THREE.CircleGeometry(.085,10),new THREE.MeshBasicMaterial({color:'#bd9772',transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.y=.052;player.add(m);return m;});
+
+
+const shadow=new THREE.Mesh(new THREE.CircleGeometry(.69,24),new THREE.MeshBasicMaterial({color:'#3c2921',transparent:true,opacity:.2,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.055;player.add(shadow);
+const keys={};let joy={x:0,y:0},runningTouch=false,camAngle=.47,camDistance=21,camHeight=11.7,walking=0,stepTime=0,dialogOpen=false,nearStore=null;
+function collision(x,z){if(x<-105||x>105||z<-105||z>105)return true;for(let b of blockers){if(Math.abs(x-b.x)<b.hw+.65&&Math.abs(z-b.z)<b.hd+.65)return true;}return false}
+function openShop(){if(!nearStore)return;dialogOpen=true;document.getElementById('shop-emoji').textContent=nearStore.emoji;document.getElementById('shop-title').textContent=nearStore.name;document.getElementById('shop-text').textContent=nearStore.talk;document.getElementById('dialog').classList.add('show');if(!visited.has(nearStore.key)){visited.add(nearStore.key);document.getElementById('visited-count').textContent=`${visited.size} / ${shops.length} shops explored`;if(visited.size===shops.length)showToast('🎉 Mohalla ke saare shops explore kar liye!')}}
+function closeShop(){dialogOpen=false;document.getElementById('dialog').classList.remove('show')}
+document.getElementById('interaction').addEventListener('click',openShop);document.getElementById('close-dialog').addEventListener('click',closeShop);
+let toastTimer;function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('show'),2500)}
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();if(!keys[k]&&k==='e'){if(dialogOpen)closeShop();else openShop()}if(k==='escape')closeShop();keys[k]=true});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{for(let k in keys)keys[k]=false;joy={x:0,y:0}});
+// Mouse look (click + drag). Scroll to zoom.
+let dragging=false,lastX=0;
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){dragging=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointermove',e=>{if(dragging&&e.pointerType==='mouse'){camAngle-=(e.clientX-lastX)*.006;lastX=e.clientX}});
+canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{e.preventDefault();camDistance=THREE.MathUtils.clamp(camDistance+Math.sign(e.deltaY)*1.7,12,31)},{passive:false});
+const jb=document.getElementById('joybase'),knob=document.getElementById('joyknob');let joyId=null;
+function setJoy(e){let r=jb.getBoundingClientRect();let x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2);let mag=Math.max(1,Math.hypot(x,y)/39);joy={x:x/mag/39,y:y/mag/39};knob.style.transform=`translate(${joy.x*39}px, ${joy.y*39}px)`}
+jb.addEventListener('pointerdown',e=>{joyId=e.pointerId;jb.setPointerCapture(e.pointerId);setJoy(e)});jb.addEventListener('pointermove',e=>{if(joyId===e.pointerId)setJoy(e)});
+function resetJoy(){joyId=null;joy={x:0,y:0};knob.style.transform='translate(0,0)'}jb.addEventListener('pointerup',resetJoy);jb.addEventListener('pointercancel',resetJoy);
+const runbtn=document.getElementById('touchrun');runbtn.addEventListener('pointerdown',e=>{runningTouch=true;runbtn.setPointerCapture(e.pointerId)});runbtn.addEventListener('pointerup',()=>runningTouch=false);runbtn.addEventListener('pointercancel',()=>runningTouch=false);
+document.getElementById('touchact').addEventListener('click',()=>dialogOpen?closeShop():openShop());
+let night=false;const toggle=document.getElementById('daynight');
+toggle.addEventListener('click',()=>{night=!night;toggle.innerHTML=night?'☀️ <span>Din</span>':'🌙 <span>Raat</span>';scene.background.set(night?'#242e4c':'#e8c5a2');scene.fog.color.set(night?'#242e4c':'#e8c5a2');ambient.intensity=night?.75:2.0;sun.intensity=night?.32:3.1;renderer.toneMappingExposure=night?1.14:1.37;for(let l of lamps)l.material.emissiveIntensity=night?2.5:.14;showToast(night?'🌙 Mohalle mein raat ho gayi':'☀️ Suraj nikal aaya!')});
+
+// ─── MOHALLA STUDIO: script -> deterministic storyboard -> video ─────────────
+const output=document.getElementById('videoCanvas'),ctx=output.getContext('2d',{alpha:false});
+const stage=document.getElementById('stage');
+const statusEl=document.getElementById('status');
+const timeEl=document.getElementById('timeDisplay');
+const scrub=document.getElementById('scrub');
+const shotList=document.getElementById('shots');
+const scriptEl=document.getElementById('scriptText');
+const voiceInput=document.getElementById('voiceInput');
+const playerAudio=new Audio();playerAudio.preload='auto';
+let audioURL=null,audioContext=null,audioNode=null,audioDest=null;
+let format='portrait',shots=[],totalDuration=0,currentTime=0,playing=false,recording=false;
+let recorder=null,recordParts=[],stream=null,activeIndex=-1,frameStamp=performance.now();
+const fmt=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const easing=t=>t*t*(3-2*t);
+const exampleScript=scriptEl.value;
+let cinematic=true;
+const destinations={
+ 'chai':{x:6.0,z:-18,name:'Chai ki tapri'},
+ 'kirana':{x:-6,z:18,name:'Sharma Kirana'},
+ 'sabzi':{x:6,z:40,name:'Sabzi wala'},
+ 'paan':{x:-6,z:-40,name:'Pappu Paan'},
+ 'medical':{x:6,z:18,name:'Medical Store'},
+ 'salon':{x:-6,z:-18,name:'Raju Salon'},
+ 'mithai':{x:6,z:-75,name:'Mithai Shop'},
+ 'mobile':{x:-6,z:75,name:'Mobile Repair'},
+ 'chowk':{x:0,z:2,name:'Mohalla Chowk'},
+ 'auto':{x:49,z:0,name:'Auto Stand'},
+ 'gali':{x:0,z:-34,name:'Mohalle ki Gali'},
+};
+function namedLocation(line){
+ const s=line.toLowerCase();
+ if(/chai|चाय|tapri|टपरी/.test(s))return destinations.chai;
+ if(/kirana|किराना|sharma/.test(s))return destinations.kirana;
+ if(/sabzi|सब्ज|vegetable/.test(s))return destinations.sabzi;
+ if(/paan|पान/.test(s))return destinations.paan;
+ if(/medical|दवाई|chemist/.test(s))return destinations.medical;
+ if(/salon|नाई|haircut/.test(s))return destinations.salon;
+ if(/mithai|मिठाई|lassi|लस्सी/.test(s))return destinations.mithai;
+ if(/mobile|फोन|phone repair/.test(s))return destinations.mobile;
+ if(/auto|ऑटो|rickshaw/.test(s))return destinations.auto;
+ if(/chowk|चौक|ghar|घर|वापस/.test(s))return destinations.chowk;
+ if(/gali|गली|street/.test(s))return destinations.gali;
+ return null;
+}
+function parseLine(raw){
+ const s=raw.toLowerCase().replace(/\[[^\]]+\]/g,' ').trim();
+ const q=raw.match(/["“‘']([^"”’']+)["”’']/);
+ const dialogue=/(kehta|kehti|kehte|bolta|bolti|bolta hai|bolti hai|says?|speaks?|dialogue|बोलता|बोलती|कहता|कहती|कहते|बोलो|बोलता है|कहता है)\b/i.test(s);
+ if(q&&dialogue)return {kind:'talk',label:'Dialogue',caption:q[1].trim(),duration:clamp(q[1].length*.077+1.8,2.4,8.8),raw};
+ if(/camera|shot|close.?up|zoom|कैमरा/.test(s)){
+   const mode=/close|zoom|nazdeek|नज़दीक|नजदीक/.test(s)?'close':/wide|far|door|दूर/.test(s)?'wide':'follow';
+   return {kind:'camera',mode,label:`Camera ${mode}`,duration:.7,caption:'',raw};
+ }
+ if(/raat|रात|night|shaam|शाम/.test(s)&&!/bhag|run/.test(s))return {kind:'time',night:true,label:'Night scene',caption:'',duration:1.6,raw};
+ if(/subah|सुबह|morning|din |दिन |daylight/.test(s))return {kind:'time',night:false,label:'Morning scene',caption:'',duration:1.5,raw};
+ if(/haath.*hila|हाथ.*हिला|wave|namaste|नमस्ते|hello/.test(s))return {kind:'wave',label:'Wave / greet',duration:2.7,caption:raw,raw};
+ if(/jump|कूद|kood|uchhal|उछल/.test(s))return {kind:'jump',label:'Jump',duration:2.2,caption:raw,raw};
+ if(/dance|naach|नाच/.test(s))return {kind:'dance',label:'Dance',duration:3.7,caption:raw,raw};
+ if(/idhar.*udhar|इधर.*उधर|look around|dekhta|देखता|देखती/.test(s))return {kind:'look',label:'Look around',duration:3.0,caption:raw,raw};
+ if(/ruk|रुक|wait|pause|thaher|ठहर|khada|खड़ा/.test(s)){
+   const n=s.match(/(\d+(?:\.\d+)?)\s*(?:sec|second|सेकंड)/);
+   return {kind:'pause',label:'Pause',duration:n?clamp(Number(n[1]),.5,15):2.3,caption:raw,raw};
+ }
+ const loc=namedLocation(raw);
+ if(/daud|दौड़|bhaag|भाग|running|runs?|sprint/.test(s))return {kind:'run',to:loc,label:loc?`Run → ${loc.name}`:'Run ahead',caption:raw,raw};
+ if(/jaata|jaati|jaate|जाता|जाती|जाते|ja raha|jaa raha|jaate|pahunch|पहुँच|walk|chalta|chalti|चलता|चलती|chalo|चलो|gaya|गया|goes?|gali mein|गली में/.test(s))
+    return {kind:'walk',to:loc,label:loc?`Walk → ${loc.name}`:'Walk ahead',caption:raw,raw};
+ if(q)return {kind:'talk',label:'Dialogue',caption:q[1].trim(),duration:clamp(q[1].length*.077+1.8,2.4,8.8),raw};
+ // Unrecognized sentence becomes a caption; no unsupported action is fabricated.
+ return {kind:'caption',label:'Caption only',caption:raw,duration:3.2,unsupported:true,raw};
+}
+// Routes go along existing streets. Round corners so the actor does not snap to 90° angles.
+function waypointPath(a,b){
+  const p=[{x:a.x,z:a.z}];
+  function push(x,z){const last=p[p.length-1];if(Math.hypot(x-last.x,z-last.z)>.06)p.push({x,z})}
+  const mainZ=[-58,0,58].reduce((best,z)=>Math.abs(z-a.z)<Math.abs(best-a.z)?z:best,0);
+  // Most storefronts face the north-south main lane.
+  if(Math.abs(a.x)>7&&Math.abs(a.z)>7)push(a.x,mainZ);
+  if(Math.abs(a.x)>1.5)push(0,p[p.length-1].z);
+  if(Math.abs(b.z-p[p.length-1].z)>.1)push(0,b.z);
+  if(Math.abs(b.x)>1.5)push(b.x,b.z);
+  if(Math.hypot(p[p.length-1].x-b.x,p[p.length-1].z-b.z)>.05)push(b.x,b.z);
+  // Sample quadratic rounded bends, preserving endpoints.
+  const out=[p[0]];
+  for(let i=1;i<p.length-1;i++){
+    const q=p[i],prev=p[i-1],next=p[i+1];
+    const da=Math.hypot(q.x-prev.x,q.z-prev.z),db=Math.hypot(next.x-q.x,next.z-q.z);
+    if(da<.1||db<.1){out.push(q);continue}
+    const r=Math.min(2.1,da*.25,db*.25);
+    const A={x:q.x+(prev.x-q.x)*r/da,z:q.z+(prev.z-q.z)*r/da};
+    const B={x:q.x+(next.x-q.x)*r/db,z:q.z+(next.z-q.z)*r/db};
+    out.push(A);
+    for(let k=1;k<=6;k++){const t=k/6,s=1-t;out.push({x:s*s*A.x+2*s*t*q.x+t*t*B.x,z:s*s*A.z+2*s*t*q.z+t*t*B.z})}
+  }
+  if(p.length>1)out.push(p[p.length-1]);
+  return out;
+}
+function distPath(path){let d=0;for(let i=1;i<path.length;i++)d+=Math.hypot(path[i].x-path[i-1].x,path[i].z-path[i-1].z);return d;}
+function buildArcPath(path){let lengths=[0],d=0;for(let i=1;i<path.length;i++){d+=Math.hypot(path[i].x-path[i-1].x,path[i].z-path[i-1].z);lengths.push(d)}return {points:path,lengths,total:d};}
+function pointOn(arclen,progress){
+ if(!arclen)return{x:0,z:0};const p=arclen.points;if(p.length<2)return p[0];
+ const d=arclen.total*clamp(progress,0,1);let lo=1,hi=p.length-1;
+ while(lo<hi){const mid=(lo+hi)>>1;if(arclen.lengths[mid]<d)lo=mid+1;else hi=mid}
+ const idx=lo,begin=arclen.lengths[idx-1],span=arclen.lengths[idx]-begin,amt=span?clamp((d-begin)/span,0,1):0;
+ return{x:p[idx-1].x+(p[idx].x-p[idx-1].x)*amt,z:p[idx-1].z+(p[idx].z-p[idx-1].z)*amt};
+}
+function planMotion(distance,running){
+ const maxSpeed=running?7.6:4.6, accel=running?10.5:7.5;
+ let tA=maxSpeed/accel,tC=0,v=maxSpeed;
+ if(distance<maxSpeed*maxSpeed/accel){tA=Math.sqrt(Math.max(0,distance)/accel);v=accel*tA}
+ else tC=(distance-v*v/accel)/v;
+ return {distance,accel,maxSpeed:v,tA,tC,duration:2*tA+tC,run:running};
+}
+function motionDistance(m,s){if(!m||m.distance<.0001)return 0;
+ const t=clamp(s,0,m.duration),ta=m.tA,tc=m.tC,v=m.maxSpeed,a=m.accel;
+ if(t<=ta)return .5*a*t*t;
+ if(t<=ta+tc)return .5*a*ta*ta+v*(t-ta);
+ const rem=m.duration-t;return m.distance-.5*a*rem*rem;
+}
+function motionSpeed(m,s){if(!m)return 0;return m.accel*Math.min(clamp(s,0,m.tA),m.tA,clamp(m.duration-s,0,m.tA));}
+function compile(){
+ const text=scriptEl.value.trim();if(!text){statusEl.textContent='Please type a script first';return false}
+ const lines=text.replace(/\r/g,'').split(/\n+/).flatMap(l=>l.split(/(?<=[.!?।])\s+(?=[\p{L}\[])/u)).map(x=>x.trim()).filter(Boolean);
+ let t=0,pos={x:0,z:12},lastMode='follow',lastNight=false,travel=0,priorHeading=0;
+ shots=lines.map((line,i)=>{
+   const sh=parseLine(line);sh.start=t;sh.from={...pos};sh.index=i;
+   if(sh.kind==='walk'||sh.kind==='run'){
+     if(!sh.to){sh.to={x:clamp(pos.x,-6,6),z:clamp(pos.z-12,-85,85),name:'Aage ki gali'}}
+     sh.path=buildArcPath(waypointPath(pos,sh.to));const d=sh.path.total;
+     sh.travelStart=travel;sh.motion=planMotion(d,sh.kind==='run');travel+=d;
+     sh.duration=Math.max(0.75,sh.motion.duration);
+     pos={x:sh.to.x,z:sh.to.z};
+   }
+   sh.toPos={...pos};sh.headingBefore=priorHeading;if(sh.path&&sh.path.total>.1){const p0=pointOn(sh.path,0),p1=pointOn(sh.path,.025);priorHeading=Math.atan2(p1.x-p0.x,p1.z-p0.z);}sh.headingAfter=priorHeading;
+   if(sh.kind==='camera')lastMode=sh.mode;
+   if(sh.kind==='time')lastNight=sh.night;
+   sh.camMode=lastMode;sh.isNight=lastNight;
+   sh.end=t+sh.duration;t=sh.end;
+   return sh;
+ });
+ totalDuration=t;currentTime=0;playing=false;playerAudio.pause();
+ document.getElementById('sceneCount').textContent=`${shots.length} scenes`;
+ shotList.innerHTML='';
+ const icons={walk:'🚶',run:'🏃',talk:'💬',wave:'👋',jump:'⬆️',dance:'🕺',look:'👀',pause:'⏱️',caption:'📝',camera:'🎥',time:'🌇'};
+ for(const sh of shots){const el=document.createElement('div');el.className='shot';el.dataset.index=sh.index;
+   const em=document.createElement('div');em.className='shot-emoji';em.textContent=icons[sh.kind]||'🎬';
+   const middle=document.createElement('div');middle.style.flex='1';const b=document.createElement('b');b.textContent=sh.label;
+   const small=document.createElement('small');small.textContent=sh.raw.length>61?sh.raw.slice(0,58)+'…':sh.raw;
+   middle.append(b,small);const tm=document.createElement('span');tm.className='segmenttime';tm.textContent=`${sh.duration.toFixed(1)}s`;
+   el.append(em,middle,tm);el.onclick=()=>{pause();currentTime=sh.start;renderAt(currentTime)};shotList.append(el);
+ }
+ document.getElementById('playBtn').textContent='▶ Preview';
+ const unsupported=shots.filter(s=>s.unsupported).length;
+ statusEl.textContent=`${shots.length} scenes · ${fmt(totalDuration)} · Cinema v3${unsupported?' · '+unsupported+' caption-only':''}`;
+ if(unsupported)statusEl.title='Unknown commands are shown as captions, not automatically animated';
+ renderAt(0);return true;
+}
+function timeState(t){
+ let active=shots[shots.length-1],currentCamera='follow',isNight=false;
+ for(const sh of shots){if(sh.start<=t){active=sh;if(sh.kind==='camera')currentCamera=sh.mode;if(sh.kind==='time')isNight=sh.night;}else break;}
+ if(!active)return null;
+ let seconds=clamp(t-active.start,0,active.duration),local=clamp(seconds/active.duration,0,1);
+ const moving=active.kind==='walk'||active.kind==='run';
+ const distance=moving?motionDistance(active.motion,seconds):0;
+ const pos=moving?pointOn(active.path,distance/(active.motion.distance||1)):active.from;
+ const delta=moving?Math.min(.15,Math.max(.01,active.motion.distance*.005)):0;
+ const pPrev=moving?pointOn(active.path,clamp((distance-delta)/(active.motion.distance||1),0,1)):pos;
+ const pNext=moving?pointOn(active.path,clamp((distance+delta)/(active.motion.distance||1),0,1)):pos;
+ const heading=moving&&Math.hypot(pNext.x-pPrev.x,pNext.z-pPrev.z)>.001?Math.atan2(pNext.x-pPrev.x,pNext.z-pPrev.z):active.headingAfter;
+ const speed=moving?motionSpeed(active.motion,seconds):0;
+ return {active,local,seconds,pos,camMode:currentCamera,night:isNight,moving,heading,speed,distance,travelDistance:(active.travelStart||0)+distance};
+}
+// Cinematic director: fixed lenses, rule-based reframing and safe ray/obstacle avoidance.
+function cameraPose(st,t){
+ const {active,pos}=st;
+ let type=st.camMode!=='follow'?st.camMode:(cinematic?(active.kind==='talk'?'close':active.kind==='wave'?'close':active.kind==='run'?'tracking':active.kind==='walk'?'tracking':active.kind==='jump'?'medium':active.kind==='caption'?'wide':'medium'):'follow');
+ if(cinematic&&t<1.5&&active.index===0)type='establish';
+ const portrait=format==='portrait';
+ const presets={
+  establish:{angle:.80,dist:26,h:12.2,fov:portrait?55:49,lookY:1.72},
+  wide:{angle:.52,dist:22.6,h:10.0,fov:portrait?52:49,lookY:1.75},
+  medium:{angle:.40,dist:12.2,h:6.1,fov:portrait?47:43,lookY:1.94},
+  tracking:{angle:.64,dist:12.4,h:5.5,fov:portrait?44:42,lookY:1.86},
+  close:{angle:.25,dist:7.4,h:4.0,fov:portrait?38:38,lookY:2.10},
+  follow:{angle:.48,dist:16.2,h:7.3,fov:portrait?52:48,lookY:1.86}
+ };
+ const p=presets[type]||presets.medium;
+ const drift=cinematic?Math.sin(t*.17)*.022:0;
+ const a=p.angle+drift;
+ const lead=st.moving&&active.path?pointOn(active.path,clamp((st.distance+2.4)/(active.motion.distance||1),0,1)):pos;
+ const headingLead=st.moving?.16:0;
+ const look=new THREE.Vector3(pos.x+(lead.x-pos.x)*headingLead,p.lookY,pos.z+(lead.z-pos.z)*headingLead);
+ const shift=cinematic?Math.sin(t*.22)*.14:0;
+ const cam=new THREE.Vector3(pos.x+Math.sin(a)*p.dist+shift,p.h,pos.z+Math.cos(a)*p.dist);
+ return {cam,look,fov:p.fov,angle:a,type};
+}
+function getCinematicCamera(st,t){
+ const target=cameraPose(st,t),active=st.active;
+ if(!cinematic||active.index===0)return target;
+ const previousT=Math.max(0,active.start-.0005),prevState=timeState(previousT);
+ if(!prevState)return target;
+ const old=cameraPose(prevState,previousT);
+ const blendTime=active.kind==='talk'?.35:active.kind==='camera'?.58:.95;
+ const f=easing(clamp((t-active.start)/blendTime,0,1));
+ return {cam:old.cam.clone().lerp(target.cam,f),look:old.look.clone().lerp(target.look,f),fov:old.fov+(target.fov-old.fov)*f,angle:target.angle,type:target.type};
+}
+function cameraSafePosition(look,cam){
+ const sx=look.x,sz=look.z,dx=cam.x-sx,dz=cam.z-sz;
+ let safe=1;
+ // Collision proxy height on real building blockers; trees/vehicles should not pull the camera in abruptly.
+ const points=[1, .93,.86,.79,.72,.65,.58,.51,.44,.37,.30];
+ for(const b of blockers){if(b.hw<2.2||b.hd<2.2)continue;
+   const h=b.h||8.5;
+   for(const q of points){const yy=look.y+(cam.y-look.y)*q;
+    if(yy>h+.4)continue;
+    const xx=sx+dx*q,zz=sz+dz*q;
+    if(Math.abs(xx-b.x)<b.hw+.3&&Math.abs(zz-b.z)<b.hd+.3) safe=Math.min(safe,Math.max(.28,q-.12));
+   }
+ }
+ // Camera does not pass through buildings. Keep lower bound to avoid extreme zoom.
+ if(safe<1)return look.clone().lerp(cam,safe);
+ return cam;
+}
+function darkness(t){let previous=0,next=0,start=-100;
+ for(const sh of shots){if(sh.kind==='time'&&sh.start<=t){previous=next;next=sh.night?1:0;start=sh.start;}else if(sh.start>t)break}
+ return previous+(next-previous)*easing(clamp((t-start)/2.2,0,1));
+}
+function wrapText(text,maxWidth,font){ctx.font=font;const lines=[],words=String(text).split(/\s+/);let line='';for(let word of words){let candidate=line?line+' '+word:word;if(ctx.measureText(candidate).width>maxWidth&&line){lines.push(line);line=word}else line=candidate}if(line)lines.push(line);return lines.slice(0,4)}
+// Street details which make close-up shots feel alive without high polygon costs.
+const steamWisps=[];
+for(let i=0;i<4;i++){
+ const count=11,pts=new Float32Array(count*3),mat=new THREE.LineBasicMaterial({color:'#e9dcc8',transparent:true,opacity:.24,depthWrite:false});
+ const geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.BufferAttribute(pts,3));
+ const line=new THREE.Line(geom,mat);line.frustumCulled=false;world.add(line);steamWisps.push({line,pts,i,count});
+}
+const pigeons=[];
+for(let k=0;k<3;k++){
+ const g=new THREE.Group();world.add(g);
+ for(const flip of [-1,1]){
+  const wing=new THREE.Mesh(new THREE.ConeGeometry(.17,.48,3),M('#555a59'));wing.rotation.z=flip*.9;wing.position.x=flip*.17;g.add(wing);
+ }
+ pigeons.push(g);
+}
+const nightLights=[];
+for(const [x,z] of [[7,8],[-7,-8],[7,58],[-7,-58]]){
+ const l=new THREE.PointLight('#ffd29e',0,15,2.2);l.position.set(x,4.9,z);world.add(l);nightLights.push(l);
+}
+function animateEnvironment(t,nightMix){
+ for(const {line,pts,i,count} of steamWisps){
+  for(let j=0;j<count;j++){
+   const p=j/(count-1),ix=j*3;
+   pts[ix]=6.5+i*.21+Math.sin(p*5.5+t*.8+i)*(.16+.24*p);
+   pts[ix+1]=1.05+p*1.55+((t*.16+i*.21)%0.25);
+   pts[ix+2]=-18.6+Math.cos(p*7.0+t*.65+i)*.15;
+  }
+  line.geometry.attributes.position.needsUpdate=true;
+  line.material.opacity=.13+nightMix*.12;
+ }
+ for(let i=0;i<pigeons.length;i++){
+  const p=pigeons[i],phase=t*(.19+i*.018)+i*1.9;
+  p.position.set(Math.sin(phase)*46,12+i*2.4+Math.sin(phase*2)*.8,-40+Math.cos(phase)*50);
+  p.rotation.y=phase+.5;
+  p.scale.y=1+Math.sin(t*10+i*2)*.15;
+ }
+ for(const a of animated)if(a.kind==='npc')a.g.rotation.z=Math.sin(t*1.35+a.seed)*.014;
+ for(const l of nightLights)l.intensity=nightMix*1.0;
+}
+
+function drawOverlay(state){
+ const {width:w,height:h}=output;
+ ctx.clearRect(0,0,w,h);ctx.drawImage(canvas,0,0,w,h);
+ const {active,local}=state;
+ // Soft letterbox gradient, slight warm cinematic grade, and lower-third timing.
+ const grade=ctx.createLinearGradient(0,0,w,h);grade.addColorStop(0,'rgba(255,191,108,.045)');grade.addColorStop(.6,'rgba(255,255,255,0)');grade.addColorStop(1,'rgba(30,37,65,.09)');ctx.fillStyle=grade;ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(0,0,w,h*.014);ctx.fillRect(0,h*.987,w,h*.013);
+ // In-video vignette + contrast graduation
+ const gradient=ctx.createLinearGradient(0,h*.58,0,h);gradient.addColorStop(0,'rgba(10,13,19,0)');gradient.addColorStop(1,'rgba(10,13,19,.71)');ctx.fillStyle=gradient;ctx.fillRect(0,h*.55,w,h*.45);
+ ctx.fillStyle='rgba(20,25,32,.70)';ctx.beginPath();ctx.roundRect(w*.04,h*.035,w*.27,h*.043,10);ctx.fill();ctx.fillStyle='#fff5e5';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`800 ${Math.round(w*.025)}px system-ui`;ctx.fillText('APNA MOHALLA',w*.175,h*.057,w*.25);
+ const txt=active.caption||'';
+ if(txt){const font=`800 ${Math.round(w*(format==='portrait'?.049:.033))}px system-ui, Arial, sans-serif`;
+   const lines=wrapText(txt,w*.83,font),lineH=w*(format==='portrait'?.072:.046),base=h*.86-(lines.length-1)*lineH/2;
+   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=font;ctx.lineJoin='round';ctx.lineWidth=w*.010;ctx.strokeStyle='rgba(18,19,26,.95)';ctx.fillStyle='#fffdf5';
+   lines.forEach((line,i)=>{const y=base+i*lineH;ctx.strokeText(line,w/2,y,w*.85);ctx.fillText(line,w/2,y,w*.85)});
+ }
+ // Spoken dialogue bubble above character, in frame, timed to its scene
+ if(active.kind==='talk'&&txt){let bubbleFont=`700 ${Math.round(w*.031)}px system-ui, Arial, sans-serif`;
+   const lines=wrapText(txt,w*.66,bubbleFont),lineH=w*.047, bh=(lines.length+1)*lineH+18,by=h*.18,bw=w*.78,bx=(w-bw)/2;
+   ctx.fillStyle='#fff8e8';ctx.beginPath();ctx.roundRect(bx,by,bw,bh,17);ctx.fill();ctx.strokeStyle='#3a2d23';ctx.lineWidth=Math.max(2,w*.004);ctx.stroke();ctx.font=bubbleFont;ctx.fillStyle='#3b2b1f';ctx.textAlign='center';ctx.textBaseline='middle';
+   lines.forEach((line,i)=>ctx.fillText(line,w/2,by+lineH*(i+1)+3,w*.68));
+ }
+}
+let lastUI=-1;
+function renderAt(t){
+ if(!shots.length)return;
+ currentTime=clamp(t,0,totalDuration);
+ const st=timeState(currentTime);if(!st)return;
+ const {active,local,pos,moving,speed,heading,distance}=st;
+ player.position.set(pos.x,0,pos.z);
+  const normalizedSpeed=moving?clamp(speed/(active.kind==='run'?7.6:4.6),0,1):0;
+  // Gait progress follows distance (not elapsed time), so changing speeds won't reset the gait.
+  const strideMeters=active.kind==='run'?2.18:1.35;
+  const phase=st.travelDistance/strideMeters*Math.PI*2;
+  const contactLeft=Math.cos(phase)>0,contactRight=!contactLeft;
+  const swing=Math.sin(phase),flight=Math.abs(Math.sin(phase));
+  const amp=(active.kind==='run'?.33:.255)*normalizedSpeed;
+  const leftAngle=swing*amp,rightAngle=-swing*amp;
+  leftLeg.rotation.z=leftAngle;rightLeg.rotation.z=rightAngle;
+  let bob=moving?(.012+.025*Math.cos(phase*2))*(.40+.60*normalizedSpeed):Math.sin(currentTime*2.2)*.008;
+  let hop=0;
+  if(active.kind==='jump'){const v=Math.max(0,Math.sin(local*Math.PI));hop=.57*v*v;bob=0;}
+  if(active.kind==='dance'){hop=Math.abs(Math.sin(local*Math.PI*8))*.15;bob=0;}
+  character.position.y=1.83+bob+hop;
+  character.rotation.z=moving?Math.sin(phase)*.010*normalizedSpeed:Math.sin(currentTime*1.3)*.003;
+  const legLength=.76;
+  const footClearance=active.kind==='run'?.13:.085;
+  // Compensate for body vertical oscillation during stance. Lift only the leg in swing.
+  const leftLift=moving?Math.max(0,-Math.cos(phase))*footClearance*normalizedSpeed:0;
+  const rightLift=moving?Math.max(0,Math.cos(phase))*footClearance*normalizedSpeed:0;
+  leftLeg.position.y=legRestY[0]-bob-legLength*(1-Math.cos(leftAngle))+leftLift;
+  rightLeg.position.y=legRestY[1]-bob-legLength*(1-Math.cos(rightAngle))+rightLift;
+  const armSwing=moving?Math.sin(phase)*(active.kind==='run'?.56:.34)*normalizedSpeed:Math.sin(currentTime*1.4)*.012;
+  armLeft.shoulder.rotation.z=.12+armSwing;
+  armRight.shoulder.rotation.z=-.12-armSwing;
+  armLeft.elbow.rotation.z=-.17-.16*normalizedSpeed;
+  armRight.elbow.rotation.z=.17+.16*normalizedSpeed;
+  // Original head and outfit are now independently animated around their natural joints.
+  headAnchor.rotation.z=-(character.rotation.z*.55)+Math.sin(currentTime*1.2)*.003;
+  headAnchor.rotation.y=moving?Math.sin(phase*.5)*.045*normalizedSpeed:0;
+  torsoMesh.rotation.z=moving?Math.sin(phase)*.008:0;
+  if(active.kind==='wave'){
+    const wave=Math.sin(local*Math.PI*5);
+    armRight.shoulder.rotation.z=2.5+.15*wave;
+    armRight.elbow.rotation.z=-.3+.24*wave;
+    headAnchor.rotation.z=.035;
+  }
+  if(active.kind==='look')headAnchor.rotation.y=Math.sin(local*Math.PI*3)*.24;
+  if(active.kind==='dance'){
+    const p=local*Math.PI*8;
+    character.rotation.z+=Math.sin(p)*.055;
+    armLeft.shoulder.rotation.z=1.75+Math.sin(p)*.25;
+    armRight.shoulder.rotation.z=-1.75+Math.cos(p)*.25;
+    leftLeg.rotation.z=Math.sin(p)*.20;rightLeg.rotation.z=-Math.sin(p)*.20;
+  }
+  if(active.kind==='talk'){
+    headAnchor.rotation.z+=Math.sin(local*active.duration*9)*.012;
+    armRight.shoulder.rotation.z=-.36-.17*Math.sin(local*active.duration*8);
+    armRight.elbow.rotation.z=.45;
+  }
+  shadow.material.opacity=Math.max(.07,.17-(hop*.1));
+  shadow.scale.setScalar(1+.26*hop);
+  const groundOffset=[-.20,.20];
+  for(let i=0;i<2;i++){
+    const a=i===0?leftAngle:rightAngle;
+    footContacts[i].position.set(groundOffset[i]+Math.sin(a)*.55,.049,0);
+    footContacts[i].material.opacity=moving?((i===0?contactLeft:contactRight)?.13:.035)*normalizedSpeed:.10;
+    footContacts[i].scale.set(1.12,.7,1);
+  }
+  for(let i=0;i<dustParticles.length;i++){
+    const dust=dustParticles[i];
+    const cycle=((st.travelDistance/strideMeters*2 + i/6)%1+1)%1;
+    const life=1-cycle;
+    const amount=normalizedSpeed*.075*(i%3===0?1:.4);
+    dust.position.set((i%2?-.25:.25)+(cycle-.5)*.5,.057,(cycle-.5)*.38);
+    dust.scale.setScalar(1+cycle*2.6);
+    dust.material.opacity=moving?Math.sin(cycle*Math.PI)*amount:0;
+  }
+ const nightMix=darkness(currentTime);
+ scene.background.copy(new THREE.Color('#e8c5a2').lerp(new THREE.Color('#242e4c'),nightMix));
+ scene.fog.color.copy(scene.background);
+ ambient.intensity=2.0-1.25*nightMix;sun.intensity=3.1-2.72*nightMix;
+ renderer.toneMappingExposure=1.37-.23*nightMix;
+ for(const l of lamps)l.material.emissiveIntensity=.14+2.26*nightMix;
+ animateEnvironment(currentTime,nightMix);
+ const shot=getCinematicCamera(st,currentTime);
+ character.rotation.y=shot.angle;
+  // Camera clearance is computed from scene positions (deterministic when seeking).
+  const safeCamera=cameraSafePosition(shot.look,shot.cam);
+  camera.position.copy(safeCamera);
+ camera.fov=shot.fov;camera.updateProjectionMatrix();camera.lookAt(shot.look);
+ renderer.render(scene,camera);
+ drawOverlay(st);
+ if(Math.abs(currentTime-lastUI)>.075||currentTime===0||currentTime===totalDuration){
+   lastUI=currentTime;timeEl.textContent=`${fmt(currentTime)} / ${fmt(totalDuration)}`;
+   scrub.value=String(Math.round(currentTime/(totalDuration||1)*1000));
+   if(activeIndex!==active.index){activeIndex=active.index;for(const el of shotList.children)el.classList.toggle('active',Number(el.dataset.index)===activeIndex);}
+   document.getElementById('cameraLabel').textContent=cinematic?('Auto · '+shot.type):'Steady Follow';
+ }
+}
+function setRatio(type){if(recording)return;format=type;
+ const portrait=format==='portrait';const w=portrait?540:960,h=portrait?960:540;
+ output.width=w;output.height=h;canvas.width=w;canvas.height=h;
+ renderer.setSize(w,h,false);renderer.setPixelRatio(1);
+ camera.aspect=w/h;camera.fov=portrait?54:51;camera.updateProjectionMatrix();
+ stage.style.aspectRatio=portrait?'9 / 16':'16 / 9';
+ document.getElementById('portraitBtn').classList.toggle('active',portrait);
+ document.getElementById('landscapeBtn').classList.toggle('active',!portrait);
+ document.getElementById('ratioLabel').textContent=portrait?'Reels • 9:16':'YouTube • 16:9';
+ renderAt(currentTime);
+}
+function pause(){playing=false;playerAudio.pause();document.getElementById('playBtn').textContent='▶ Preview';}
+function play(){if(!shots.length)compile();if(currentTime>=totalDuration-.04)currentTime=0;playing=true;document.getElementById('playBtn').textContent='⏸ Pause';
+ if(playerAudio.src){playerAudio.currentTime=Math.min(currentTime,Number.isFinite(playerAudio.duration)?playerAudio.duration:currentTime);playerAudio.play().catch(()=>{});}
+ frameStamp=performance.now();}
+function finishRecord(){if(recorder&&recorder.state!=='inactive')recorder.stop();}
+function setupAudio(){
+ if(!playerAudio.src)return null;
+ const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+ if(!audioContext){audioContext=new AC();audioNode=audioContext.createMediaElementSource(playerAudio);audioDest=audioContext.createMediaStreamDestination();audioNode.connect(audioDest);audioNode.connect(audioContext.destination)}
+ audioContext.resume();return audioDest.stream.getAudioTracks()[0]||null;
+}
+async function exportVideo(){
+ if(recording)return;if(!('MediaRecorder'in window)||!output.captureStream){statusEl.textContent='MediaRecorder not available; try Chrome/Edge';return;}
+ if(!shots.length&&!compile())return;
+ pause();renderAt(0);
+ try{
+   stream=output.captureStream(30);
+   const audioTrack=setupAudio();if(audioTrack)stream.addTrack(audioTrack);
+   const choices=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+   const mime=choices.find(x=>MediaRecorder.isTypeSupported(x));if(!mime){statusEl.textContent='WebM recording unsupported in this browser';return;}
+   recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4500000});recordParts=[];
+   recorder.ondataavailable=e=>{if(e.data&&e.data.size)recordParts.push(e.data)};
+   recorder.onerror=()=>{statusEl.textContent='Recording error; try Chrome/Edge'};
+   recorder.onstop=()=>{
+      recording=false;playing=false;playerAudio.pause();
+      document.getElementById('exportBtn').disabled=false;document.getElementById('recordHint').style.display='none';
+      document.getElementById('playBtn').textContent='▶ Preview';
+      const type=recorder.mimeType||'video/webm';
+      const blob=new Blob(recordParts,{type});if(blob.size){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`Apna_Mohalla_${format}_${Date.now()}.webm`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);statusEl.textContent=`Exported ${(blob.size/1048576).toFixed(1)} MB WebM`}else statusEl.textContent='Recording empty; try again';
+      if(stream)stream.getVideoTracks().forEach(t=>t.stop());
+   };
+   currentTime=0;renderAt(0);recorder.start(250);recording=true;
+   document.getElementById('exportBtn').disabled=true;document.getElementById('recordHint').style.display='block';
+   statusEl.textContent='🔴 Recording • do not switch tabs';play();
+ }catch(e){recording=false;statusEl.textContent='Export failed: '+e.message;console.error(e)}
+}
+document.getElementById('buildBtn').addEventListener('click',()=>{if(recording)return;compile()});
+document.getElementById('exampleBtn').addEventListener('click',()=>{if(recording)return;scriptEl.value=exampleScript;compile()});
+document.getElementById('walkTestBtn').addEventListener('click',()=>{if(recording)return;scriptEl.value=`Subah ka mohalla.
+Camera wide shot.
+Raju gali mein chalta hai.
+Raju ruk kar idhar-udhar dekhta hai.
+Camera close-up.
+Raju haath hilata hai.
+Camera wide shot.
+Raju chai ki tapri par jaata hai.`;compile()});
+document.getElementById('cinemaBtn').addEventListener('click',()=>{cinematic=true;document.getElementById('cinemaBtn').classList.add('active');document.getElementById('steadyBtn').classList.remove('active');renderAt(currentTime)});
+document.getElementById('steadyBtn').addEventListener('click',()=>{cinematic=false;document.getElementById('steadyBtn').classList.add('active');document.getElementById('cinemaBtn').classList.remove('active');renderAt(currentTime)});
+document.getElementById('portraitBtn').addEventListener('click',()=>setRatio('portrait'));
+document.getElementById('landscapeBtn').addEventListener('click',()=>setRatio('landscape'));
+document.getElementById('playBtn').addEventListener('click',()=>{if(recording)return;if(playing)pause();else play()});
+document.getElementById('restartBtn').addEventListener('click',()=>{if(recording)return;pause();currentTime=0;playerAudio.currentTime=0;renderAt(0)});
+document.getElementById('exportBtn').addEventListener('click',exportVideo);
+scrub.addEventListener('input',()=>{if(recording)return;pause();currentTime=Number(scrub.value)/1000*totalDuration;renderAt(currentTime)});
+voiceInput.addEventListener('change',()=>{playerAudio.pause();if(audioURL)URL.revokeObjectURL(audioURL);const f=voiceInput.files[0];if(f){audioURL=URL.createObjectURL(f);playerAudio.src=audioURL;statusEl.textContent='Voiceover added: '+f.name}else{audioURL=null;playerAudio.removeAttribute('src');playerAudio.load();statusEl.textContent='Voiceover removed'}});
+// Render the exact same cinematic timeline into the studio and capture canvas.
+function loop(now){requestAnimationFrame(loop);let dt=Math.min(.08,(now-frameStamp)/1000);frameStamp=now;
+ if(playing){currentTime=Math.min(totalDuration,currentTime+dt);if(currentTime>=totalDuration){playing=false;playerAudio.pause();document.getElementById('playBtn').textContent='▶ Preview';if(recording)finishRecord();}}
+ if(shots.length)renderAt(currentTime);
+}
+// Avoid the main interaction layer taking keyboard input while user edits script.
+window.addEventListener('keydown',e=>{if(document.activeElement===scriptEl)e.stopImmediatePropagation()},true);
+renderer.shadowMap.enabled=false; // CPU-friendly: contact shadows rather than huge shadow-map passes
+setRatio('portrait');compile();requestAnimationFrame(loop);
+const loader=document.getElementById('loading');loader.style.opacity='0';setTimeout(()=>loader.remove(),500);
+
+</script>
+</body>
+</html>
