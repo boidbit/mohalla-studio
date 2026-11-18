@@ -108,25 +108,27 @@ export function createToonStickman(THREE, options = {}) {
     }
     g.restore();
   }
-  function footCycle(cycle,side,blend){
+  function footCycle(cycle,side,blend,stepPixels=96){
     // 62% stance / 38% swing: distance drives gait instead of frame time.
     const q=fract(cycle+(side>0?.5:0));
     let stride, lift;
     if(q<.62){stride=1-2*q/.62;lift=0;}
     else {const u=smooth((q-.62)/.38);stride=-1+2*u;lift=Math.sin(PI*u)*40;}
-    return {x:side*35+stride*69*blend,y:315-lift*blend,contact:q<.62};
+    return {x:side*35+stride*stepPixels*blend,y:315-lift*blend,contact:q<.62};
   }
-  function update({time=0,phase=0,velocity=0,action='idle',local=0,hop=0}={}){
+  function update({time=0,phase=0,velocity=0,action='idle',local=0,hop=0,turn=0}={}){
     const v=smooth(velocity/.45);
     const moving=(action==='walk'||action==='run') && velocity>.001;
     const stride=phase/TAU;
-    const l=moving?footCycle(stride,-1,v):{x:-41,y:315,contact:true};
-    const r=moving?footCycle(stride,1,v):{x:41,y:315,contact:true};
-    const sway=moving?Math.sin(phase)*2.5*v:Math.sin(time*1.3)*.7;
+    const bend=clamp(turn,-1,1);
+    const stepPixels=action==='run'?104:96;
+    const l=moving?footCycle(stride,-1,v,stepPixels):{x:-41,y:315,contact:true};
+    const r=moving?footCycle(stride,1,v,stepPixels):{x:41,y:315,contact:true};
+    const sway=(moving?Math.sin(phase)*2.5*v:Math.sin(time*1.3)*.7)+bend*2.9*v;
     const hipY=-(moving?Math.abs(Math.sin(phase))*5*v:Math.sin(time*1.6)*1.4);
     const armWave=Math.sin(phase)*(action==='run'?33:25)*v;
     let la1=-14-armWave,la2=-8-armWave*.5,ra1=14+armWave,ra2=8+armWave*.5;
-    let expr='smile',tilt=Math.cos(time*1.7)*1.5,lookX=0;
+    let expr='smile',tilt=Math.cos(time*1.7)*1.5-bend*3.0*v,lookX=bend*.55;
     if(action==='talk'){expr='talk';ra1=40+20*Math.sin(time*7);ra2=65+23*Math.sin(time*8.5);}
     if(action==='wave'){ra1=132;ra2=170+24*Math.sin(time*15);}
     if(action==='look'){expr='think';lookX=Math.sin(time*3.5);tilt=3;}
@@ -138,7 +140,7 @@ export function createToonStickman(THREE, options = {}) {
     g.save();g.translate(W/2+sway,H-70-315);
     // Legs are drawn outside the moving torso transform; stance heels stay on y=315.
     leg([-36,hipY],[l.x,l.y],-1);leg([36,hipY],[r.x,r.y],1);
-    g.save();g.translate(0,hipY);g.rotate(d2r(moving?Math.sin(phase)*1.3*v:Math.sin(time*.9)*.35));
+    g.save();g.translate(0,hipY);g.rotate(d2r((moving?Math.sin(phase)*1.3*v:Math.sin(time*.9)*.35)+bend*2.4*v));
     body();arm(-1,la1,la2);arm(1,ra1,ra2);head(expr,tilt,blink,mouthOpen,lookX);
     g.restore();g.restore();
     texture.needsUpdate=true;

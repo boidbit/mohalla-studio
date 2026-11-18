@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Mohalla Studio — Cinematic Motion v4</title>
+<title>Mohalla Studio — Cinematic Motion v5</title>
 <style>
   *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#edcead;font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;user-select:none;-webkit-user-select:none}
   #game{width:100%;height:100%;display:block;touch-action:none}
@@ -113,7 +113,7 @@ Camera wide shot.
 Raju chowk ki taraf daudta hai.
 Raju ruk kar idhar-udhar dekhta hai.</textarea>
       <p class="hint">Ek action per line best hai. Supports: walk, run, chai shop, kirana, sabzi, wave, jump, look, dialogue, close-up/wide camera, day/night. Unsupported actions appear as captions.</p>
-      <div class="buttonrow"><button class="studiobtn primary" id="buildBtn">✦ Generate Scenes</button><button class="studiobtn" id="exampleBtn">↺ Sample</button><button class="studiobtn" id="walkTestBtn">🚶 Walk Test</button></div>
+      <div class="buttonrow"><button class="studiobtn primary" id="buildBtn">✦ Generate Scenes</button><button class="studiobtn" id="exampleBtn">↺ Sample</button><button class="studiobtn" id="walkTestBtn">🚶 Walk Test</button><button class="studiobtn" id="turnTestBtn">🎥 Turn Test</button></div>
       <div class="sectionhead"><span>2. Video format</span><span id="ratioLabel">Reels • 9:16</span></div>
       <div class="smalltoggle"><button class="toggle active" id="portraitBtn">9:16 Portrait</button><button class="toggle" id="landscapeBtn">16:9 Landscape</button></div>
       <div class="sectionhead"><span>3. Camera style</span><span id="cameraLabel">Auto Director</span></div>
@@ -127,7 +127,7 @@ Raju ruk kar idhar-udhar dekhta hai.</textarea>
     </div>
   </aside>
   <main id="workarea">
-    <div class="worktop"><div><strong>Live scene preview <span class="introTag">THREE.JS</span></strong><div class="muted">Instashorts-style procedural stickman • planted feet • cinematic camera</div></div><span id="status">Ready</span></div>
+    <div class="worktop"><div><strong>Live scene preview <span class="introTag">THREE.JS</span></strong><div class="muted">Procedural Toon • bend anticipation • obstruction-safe camera • auto-deploy</div></div><span id="status">Ready</span></div>
     <div class="stageouter"><div id="stage"><canvas id="game"></canvas><canvas id="videoCanvas"></canvas></div></div>
     <div class="transport">
       <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Video timeline"/>
@@ -151,6 +151,7 @@ Raju ruk kar idhar-udhar dekhta hai.</textarea>
 <script type="module">
 import * as THREE from 'three';
 import { createToonStickman } from './src/toon-stickman.js';
+import { routeBend, cameraClearance } from './src/cinematic-motion.js';
 
 // ─── A portable, edit-friendly procedural Three.js neighborhood ─────────────
 const canvas=document.getElementById('game');
@@ -512,7 +513,7 @@ function compile(){
      sh.duration=Math.max(0.75,sh.motion.duration);
      pos={x:sh.to.x,z:sh.to.z};
    }
-   sh.toPos={...pos};sh.headingBefore=priorHeading;if(sh.path&&sh.path.total>.1){const p0=pointOn(sh.path,0),p1=pointOn(sh.path,.025);priorHeading=Math.atan2(p1.x-p0.x,p1.z-p0.z);}sh.headingAfter=priorHeading;
+   sh.toPos={...pos};sh.headingBefore=priorHeading;if(sh.path&&sh.path.total>.1){const p0=pointOn(sh.path,.97),p1=pointOn(sh.path,1);priorHeading=Math.atan2(p1.x-p0.x,p1.z-p0.z);}sh.headingAfter=priorHeading;
    if(sh.kind==='camera')lastMode=sh.mode;
    if(sh.kind==='time')lastNight=sh.night;
    sh.camMode=lastMode;sh.isNight=lastNight;
@@ -532,7 +533,7 @@ function compile(){
  }
  document.getElementById('playBtn').textContent='▶ Preview';
  const unsupported=shots.filter(s=>s.unsupported).length;
- statusEl.textContent=`${shots.length} scenes · ${fmt(totalDuration)} · Cinema v4${unsupported?' · '+unsupported+' caption-only':''}`;
+ statusEl.textContent=`${shots.length} scenes · ${fmt(totalDuration)} · Cinema v5${unsupported?' · '+unsupported+' caption-only':''}`;
  if(unsupported)statusEl.title='Unknown commands are shown as captions, not automatically animated';
  renderAt(0);return true;
 }
@@ -567,7 +568,7 @@ function cameraPose(st,t){
  };
  const p=presets[type]||presets.medium;
  const drift=cinematic?Math.sin(t*.17)*.022:0;
- const a=p.angle+drift;
+ const a=(type==='tracking' && st.moving ? st.heading + (portrait?.62:.76) : p.angle)+drift;
  const lead=st.moving&&active.path?pointOn(active.path,clamp((st.distance+2.4)/(active.motion.distance||1),0,1)):pos;
  const headingLead=st.moving?.16:0;
  const composition=(cinematic&&['close','medium'].includes(type))?.34:0;
@@ -586,23 +587,8 @@ function getCinematicCamera(st,t){
  const f=easing(clamp((t-active.start)/blendTime,0,1));
  return {cam:old.cam.clone().lerp(target.cam,f),look:old.look.clone().lerp(target.look,f),fov:old.fov+(target.fov-old.fov)*f,angle:target.angle,type:target.type};
 }
-function cameraSafePosition(look,cam){
- const sx=look.x,sz=look.z,dx=cam.x-sx,dz=cam.z-sz;
- let safe=1;
- // Collision proxy height on real building blockers; trees/vehicles should not pull the camera in abruptly.
- const points=[1, .93,.86,.79,.72,.65,.58,.51,.44,.37,.30];
- for(const b of blockers){if(b.hw<2.2||b.hd<2.2)continue;
-   const h=b.h||8.5;
-   for(const q of points){const yy=look.y+(cam.y-look.y)*q;
-    if(yy>h+.4)continue;
-    const xx=sx+dx*q,zz=sz+dz*q;
-    if(Math.abs(xx-b.x)<b.hw+.3&&Math.abs(zz-b.z)<b.hd+.3) safe=Math.min(safe,Math.max(.28,q-.12));
-   }
- }
- // Camera does not pass through buildings. Keep lower bound to avoid extreme zoom.
- if(safe<1)return look.clone().lerp(cam,safe);
- return cam;
-}
+function cameraSafePosition(look,cam){return cameraClearance(look,cam,blockers);}
+
 function darkness(t){let previous=0,next=0,start=-100;
  for(const sh of shots){if(sh.kind==='time'&&sh.start<=t){previous=next;next=sh.night?1:0;start=sh.start;}else if(sh.start>t)break}
  return previous+(next-previous)*easing(clamp((t-start)/2.2,0,1));
@@ -746,8 +732,10 @@ function renderAt(t){
     dust.scale.setScalar(1+cycle*2.6);
     dust.material.opacity=moving?Math.sin(cycle*Math.PI)*amount:0;
   }
+  // Anticipate bends without snapping the paper puppet into a flat side view.
+  const turn=st.moving?routeBend(active.path,distance,speed):0;
   // Animation samples are pure functions of storyboard time: scrub and export match.
-  toonActor.update({time:currentTime,phase,velocity:normalizedSpeed,action:active.kind,local,hop});
+  toonActor.update({time:currentTime,phase,velocity:normalizedSpeed,action:active.kind,local,hop,turn});
   toonActor.root.visible=actorStyle==='toon';
   character.visible=actorStyle==='classic';
  const nightMix=darkness(currentTime);
@@ -758,8 +746,8 @@ function renderAt(t){
  for(const l of lamps)l.material.emissiveIntensity=.14+2.26*nightMix;
  animateEnvironment(currentTime,nightMix);
  const shot=getCinematicCamera(st,currentTime);
- character.rotation.y=shot.angle;
-  toonActor.root.rotation.y=shot.angle;
+ character.rotation.y=shot.angle+turn*.12;
+  toonActor.root.rotation.y=shot.angle+turn*.12;
   // Camera clearance is computed from scene positions (deterministic when seeking).
   const safeCamera=cameraSafePosition(shot.look,shot.cam);
   camera.position.copy(safeCamera);
@@ -840,6 +828,12 @@ Camera close-up.
 Raju haath hilata hai.
 Camera wide shot.
 Raju chai ki tapri par jaata hai.`;compile()});
+document.getElementById('turnTestBtn').addEventListener('click',()=>{if(recording)return;scriptEl.value=`Raju chai ki tapri par jaata hai.
+Camera tracking shot.
+Raju Sharma Kirana ki taraf jaata hai.
+Raju Sabzi Wala ki taraf jaata hai.
+Camera wide shot.
+Raju kirana ki taraf daudta hai.`;compile()});
 document.getElementById('cinemaBtn').addEventListener('click',()=>{cinematic=true;document.getElementById('cinemaBtn').classList.add('active');document.getElementById('steadyBtn').classList.remove('active');renderAt(currentTime)});
 document.getElementById('steadyBtn').addEventListener('click',()=>{cinematic=false;document.getElementById('steadyBtn').classList.add('active');document.getElementById('cinemaBtn').classList.remove('active');renderAt(currentTime)});
 document.getElementById('portraitBtn').addEventListener('click',()=>setRatio('portrait'));

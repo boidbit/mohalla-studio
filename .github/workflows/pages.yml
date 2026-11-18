@@ -7,6 +7,8 @@ on:
       - 'index.html'
       - 'assets/**'
       - 'src/**'
+      - 'tests/**'
+      - 'package.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -21,7 +23,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy live preview
+    name: Test and deploy live preview
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -29,6 +31,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate motion and camera
+        run: |
+          node --check src/toon-stickman.js
+          node --check src/cinematic-motion.js
+          npm test
 
       - name: Prepare static site
         run: |
@@ -39,6 +47,7 @@ jobs:
           touch _site/.nojekyll
           test -s _site/index.html
           test -s _site/src/toon-stickman.js
+          test -s _site/src/cinematic-motion.js
           test -s _site/assets/head.png
 
       - name: Configure GitHub Pages
